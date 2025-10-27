@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "dgSpecHash": "InpSSwiMTpQ=",
+  "success": true,
+  "projectFilePath": "/Users/tuanasimsek/Documents/Project/Kuafor/KuaforApi/KuaforApi.csproj",
+  "expectedPackageFiles": [
+    "/Users/tuanasimsek/.nuget/packages/microsoft.aspnetcore.openapi/9.0.8/microsoft.aspnetcore.openapi.9.0.8.nupkg.sha512",
+    "/Users/tuanasimsek/.nuget/packages/microsoft.openapi/1.6.17/microsoft.openapi.1.6.17.nupkg.sha512"
+  ],
+  "logs": []
+}
