@@ -22,12 +22,26 @@ namespace KuaforApi.Controllers
         [HttpPost("register")]
         public IActionResult Register([FromBody] RegisterRequest request)
         {
+            string normalizedRole = request.Role switch
+    {
+        "Müşteri" => "Customer",
+        "Kuaför" => "Stylist",
+        "Salon Sahibi" => "SalonOwner",
+        "Admin" => "Admin",
+        _ => "Customer"
+    };
+
             var user = new User
             {
                 FullName = request.FullName,
                 Email = request.Email,
                 Role = request.Role
             };
+            var success = _authService.Register(user, request.Password);
+    if (!success)
+        return BadRequest(new { message = "Bu e-posta zaten kayıtlı." });
+
+    return Ok(new { message = "Kayıt başarılı 🎉" });
 
             bool result = _authService.Register(user, request.Password);
 

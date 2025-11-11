@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("KuaforApi")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+3ca147f23268771e734206955d7820dd0e677392")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9164dae697ac4dd01f972a5418a353b2cb0e06f8")]
 [assembly: System.Reflection.AssemblyProductAttribute("KuaforApi")]
 [assembly: System.Reflection.AssemblyTitleAttribute("KuaforApi")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
