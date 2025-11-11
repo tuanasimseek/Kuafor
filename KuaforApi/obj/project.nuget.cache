@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "tD7Uq3zYoPI=",
+  "dgSpecHash": "NkAU+wekinA=",
   "success": true,
-  "projectFilePath": "/Users/tuanasimsek/Documents/Project/Kuafor/KuaforApi/KuaforApi.csproj",
+  "projectFilePath": "/Users/tuanasimsek/Documents/GitHub/Kuafor/KuaforApi/KuaforApi.csproj",
   "expectedPackageFiles": [
     "/Users/tuanasimsek/.nuget/packages/bcrypt.net-next/4.0.3/bcrypt.net-next.4.0.3.nupkg.sha512",
     "/Users/tuanasimsek/.nuget/packages/humanizer.core/2.14.1/humanizer.core.2.14.1.nupkg.sha512",

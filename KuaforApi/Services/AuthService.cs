@@ -1,4 +1,8 @@
 using KuaforApi.Models;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 using KuaforApi.Data;
 using BCrypt.Net;
 
@@ -40,5 +44,29 @@ namespace KuaforApi.Services
             bool isValid = BCrypt.Net.BCrypt.Verify(password, user.PasswordHash);
             return isValid ? user : null;
         }
+
+        // JWT Token oluşturma  ⬇️⬇️⬇️  BURAYI EN ALTA EKLİYORSUN
+      public string GenerateJwtToken(User user)
+{
+    var claims = new[]
+    {
+        new Claim(ClaimTypes.Name, user.Email),
+        new Claim(ClaimTypes.Role, user.Role)
+    };
+
+    var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("this_is_a_very_strong_secret_key_1234567890"));
+    var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+    var token = new JwtSecurityToken(
+        issuer: "KuaforApi",
+        audience: "KuaforApiClient",
+        claims: claims,
+        expires: DateTime.Now.AddHours(3),
+        signingCredentials: creds
+    );
+
+    return new JwtSecurityTokenHandler().WriteToken(token);
+}
+
     }
 }

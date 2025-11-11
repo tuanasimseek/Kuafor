@@ -15,10 +15,11 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // 🔹 Servisleri kaydet
 builder.Services.AddScoped<AuthService>();
 
-// 🔹 JWT Authentication
-var jwtKey = builder.Configuration["Jwt:Key"]; // appsettings.json'dan alınır
-var key = Encoding.ASCII.GetBytes(jwtKey ?? "super-secret-key");
+// 🔹 JWT Key (AuthService içindeki key ile aynı olmalı!)
+var jwtKey = "this_is_a_very_strong_secret_key_1234567890";
+var key = Encoding.UTF8.GetBytes(jwtKey);
 
+// 🔹 JWT Authentication
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -32,9 +33,23 @@ builder.Services.AddAuthentication(options =>
     {
         ValidateIssuerSigningKey = true,
         IssuerSigningKey = new SymmetricSecurityKey(key),
-        ValidateIssuer = false,
-        ValidateAudience = false
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidIssuer = "KuaforApi",
+        ValidAudience = "KuaforApiClient",
+        ClockSkew = TimeSpan.Zero
     };
+});
+
+// 🔹 CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
 });
 
 // 🔹 Controller ve Swagger servisi ekle
@@ -69,15 +84,18 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-
 var app = builder.Build();
 
-app.UseSwagger();
-app.UseSwaggerUI();
-
+// 🔹 Swagger aktif
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
 // 🔹 HTTPS yönlendirme
 app.UseHttpsRedirection();
+app.UseCors("AllowAll");
 
 // 🔹 Authentication & Authorization aktif et
 app.UseAuthentication();
@@ -85,10 +103,7 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-// 🔹 Controller’ları aktif et
-app.MapControllers();
-
-// 🔹 Test için örnek endpoint (isteğe bağlı)
+// 🔹 Test için örnek endpoint
 var summaries = new[]
 {
     "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
