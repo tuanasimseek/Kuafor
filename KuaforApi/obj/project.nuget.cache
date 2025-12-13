@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "2aw6yLw782c=",
+  "dgSpecHash": "fnN0i6yLs1Q=",
   "success": true,
-  "projectFilePath": "/Users/semanurcan/Desktop/ /yapay zeka ve uzman sistemler/Kuafor/KuaforApi/KuaforApi.csproj",
+  "projectFilePath": "/Users/semanurcan/Desktop/Kuafor/KuaforApi/KuaforApi.csproj",
   "expectedPackageFiles": [
     "/Users/semanurcan/.nuget/packages/bcrypt.net-next/4.0.3/bcrypt.net-next.4.0.3.nupkg.sha512",
     "/Users/semanurcan/.nuget/packages/humanizer.core/2.14.1/humanizer.core.2.14.1.nupkg.sha512",

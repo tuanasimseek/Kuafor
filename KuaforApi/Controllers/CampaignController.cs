@@ -24,12 +24,24 @@ public class CampaignController : ControllerBase
         return Ok(campaigns);
     }
 
+    // GET: api/campaign/{id}
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetCampaign(int id)
+    {
+        var campaign = await _context.Campaigns.FindAsync(id);
+        if (campaign == null)
+            return NotFound(new { message = "Kampanya bulunamadı." });
+
+        return Ok(campaign);
+    }
+
     // POST: api/campaign
     [HttpPost]
-    public async Task<IActionResult> CreateCampaign(Campaign campaign)
+    public async Task<IActionResult> CreateCampaign([FromBody] Campaign campaign)
     {
         _context.Campaigns.Add(campaign);
         await _context.SaveChangesAsync();
-        return Ok(campaign);
+
+        return CreatedAtAction(nameof(GetCampaign), new { id = campaign.Id }, campaign);
     }
 }

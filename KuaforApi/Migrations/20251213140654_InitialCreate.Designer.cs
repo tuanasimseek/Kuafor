@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace KuaforApi.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20251213122439_AddReview")]
-    partial class AddReview
+    [Migration("20251213140654_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -69,15 +69,19 @@ namespace KuaforApi.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Description")
+                        .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<double>("DiscountRate")
-                        .HasColumnType("double precision");
+                    b.Property<decimal?>("DiscountPercentage")
+                        .HasColumnType("numeric");
 
                     b.Property<DateTime>("EndDate")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int>("SalonId")
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<int?>("SalonId")
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("StartDate")
@@ -135,10 +139,6 @@ namespace KuaforApi.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<int>("UserId")
                         .HasColumnType("integer");
 
@@ -158,7 +158,6 @@ namespace KuaforApi.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Comment")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
@@ -167,7 +166,7 @@ namespace KuaforApi.Migrations
                     b.Property<int>("Rating")
                         .HasColumnType("integer");
 
-                    b.Property<int>("ServiceId")
+                    b.Property<int>("SalonId")
                         .HasColumnType("integer");
 
                     b.Property<int>("UserId")
@@ -175,7 +174,7 @@ namespace KuaforApi.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ServiceId");
+                    b.HasIndex("SalonId");
 
                     b.HasIndex("UserId");
 
@@ -311,9 +310,7 @@ namespace KuaforApi.Migrations
                 {
                     b.HasOne("KuaforApi.Models.Salon", "Salon")
                         .WithMany()
-                        .HasForeignKey("SalonId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("SalonId");
 
                     b.Navigation("Salon");
                 });
@@ -350,9 +347,9 @@ namespace KuaforApi.Migrations
 
             modelBuilder.Entity("KuaforApi.Models.Review", b =>
                 {
-                    b.HasOne("KuaforApi.Models.Service", "Service")
+                    b.HasOne("KuaforApi.Models.Salon", "Salon")
                         .WithMany()
-                        .HasForeignKey("ServiceId")
+                        .HasForeignKey("SalonId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -362,7 +359,7 @@ namespace KuaforApi.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Service");
+                    b.Navigation("Salon");
 
                     b.Navigation("User");
                 });

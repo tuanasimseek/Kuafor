@@ -3608,11 +3608,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/Users/semanurcan/Desktop/ /yapay zeka ve uzman sistemler/Kuafor/KuaforApi/KuaforApi.csproj",
+      "projectUniqueName": "/Users/semanurcan/Desktop/Kuafor/KuaforApi/KuaforApi.csproj",
       "projectName": "KuaforApi",
-      "projectPath": "/Users/semanurcan/Desktop/ /yapay zeka ve uzman sistemler/Kuafor/KuaforApi/KuaforApi.csproj",
+      "projectPath": "/Users/semanurcan/Desktop/Kuafor/KuaforApi/KuaforApi.csproj",
       "packagesPath": "/Users/semanurcan/.nuget/packages/",
-      "outputPath": "/Users/semanurcan/Desktop/ /yapay zeka ve uzman sistemler/Kuafor/KuaforApi/obj/",
+      "outputPath": "/Users/semanurcan/Desktop/Kuafor/KuaforApi/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "/Users/semanurcan/.nuget/NuGet/NuGet.Config"

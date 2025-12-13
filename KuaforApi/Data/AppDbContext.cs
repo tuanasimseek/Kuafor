@@ -19,9 +19,17 @@ namespace KuaforApi.Data
         public DbSet<Service> Services { get; set; } = null!;
         public DbSet<Appointment> Appointments { get; set; } = null!;
 
-        // ⭐ Sema modülü
+        // Sema modülü
         public DbSet<Campaign> Campaigns { get; set; } = null!;
         public DbSet<Review> Reviews { get; set; } = null!;
         public DbSet<Notification> Notifications { get; set; } = null!;
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+            
+            // PostgreSQL için DateTime'ı UTC olarak kaydet
+            AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+        }
     }
 }

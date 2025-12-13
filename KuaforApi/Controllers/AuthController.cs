@@ -23,32 +23,26 @@ namespace KuaforApi.Controllers
         public IActionResult Register([FromBody] RegisterRequest request)
         {
             string normalizedRole = request.Role switch
-    {
-        "Müşteri" => "Customer",
-        "Kuaför" => "Stylist",
-        "Salon Sahibi" => "SalonOwner",
-        "Admin" => "Admin",
-        _ => "Customer"
-    };
+            {
+                "Müşteri" => "Customer",
+                "Kuaför" => "Stylist",
+                "Salon Sahibi" => "SalonOwner",
+                "Admin" => "Admin",
+                _ => "Customer"
+            };
 
             var user = new User
             {
                 FullName = request.FullName,
                 Email = request.Email,
-                Role = request.Role
+                Role = normalizedRole
             };
+            
             var success = _authService.Register(user, request.Password);
-    if (!success)
-        return BadRequest(new { message = "Bu e-posta zaten kayıtlı." });
+            if (!success)
+                return BadRequest(new { message = "Bu e-posta zaten kayıtlı." });
 
-    return Ok(new { message = "Kayıt başarılı 🎉" });
-
-            bool result = _authService.Register(user, request.Password);
-
-            if (!result)
-                return BadRequest("Bu email adresiyle kayıtlı kullanıcı zaten var.");
-
-            return Ok("Kayıt başarılı!");
+            return Ok(new { message = "Kayıt başarılı 🎉" });
         }
 
         // 📌 Giriş Yap (Login)
@@ -57,14 +51,15 @@ namespace KuaforApi.Controllers
         {
             var user = _context.Users.FirstOrDefault(u => u.Email == request.Email);
             if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
-                  return Unauthorized("E-posta veya şifre hatalı.");
+                return Unauthorized("E-posta veya şifre hatalı.");
 
             var token = _authService.GenerateJwtToken(user);
 
             return Ok(new
             {
                 message = "Giriş başarılı!",
-                user = new { user.FullName, user.Email, user.Role },token=token 
+                user = new { user.FullName, user.Email, user.Role },
+                token = token 
             });
         }
     }
