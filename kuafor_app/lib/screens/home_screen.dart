@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/api_service.dart';
 import 'notification_screen.dart';
 import 'campaign_screen.dart';
 import 'review_screen.dart';
@@ -11,9 +12,27 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // Örnek kullanıcı ID'si (normalde login'den gelir)
   final int userId = 1;
   final int salonId = 1;
+  final ApiService _apiService = ApiService();
+  int _unreadCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUnreadCount();
+  }
+
+  Future<void> _loadUnreadCount() async {
+    try {
+      final notifications = await _apiService.getUserNotifications(userId);
+      setState(() {
+        _unreadCount = notifications.where((n) => !n.isRead).length;
+      });
+    } catch (e) {
+      // Hata görmezden gel
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,6 +40,12 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: const Text('Kuaför Uygulaması'),
         backgroundColor: Colors.purple,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadUnreadCount,
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -41,13 +66,15 @@ class _HomeScreenState extends State<HomeScreen> {
               title: 'Bildirimler',
               subtitle: 'Randevu hatırlatmaları ve bildirimler',
               color: Colors.orange,
-              onTap: () {
-                Navigator.push(
+              badge: _unreadCount,
+              onTap: () async {
+                await Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (context) => NotificationScreen(userId: userId),
                   ),
                 );
+                _loadUnreadCount();
               },
             ),
             const SizedBox(height: 16),
@@ -97,6 +124,7 @@ class _HomeScreenState extends State<HomeScreen> {
     required String title,
     required String subtitle,
     required Color color,
+    int badge = 0,
     required VoidCallback onTap,
   }) {
     return Card(
@@ -111,13 +139,42 @@ class _HomeScreenState extends State<HomeScreen> {
           padding: const EdgeInsets.all(16.0),
           child: Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, size: 32, color: color),
+              Stack(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(icon, size: 32, color: color),
+                  ),
+                  if (badge > 0)
+                    Positioned(
+                      right: 0,
+                      top: 0,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 20,
+                          minHeight: 20,
+                        ),
+                        child: Text(
+                          badge > 99 ? '99+' : '$badge',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
               ),
               const SizedBox(width: 16),
               Expanded(

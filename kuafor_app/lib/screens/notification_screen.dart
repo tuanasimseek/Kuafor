@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/notification.dart';
 import '../services/api_service.dart';
+import '../services/notification_service.dart';
 
 class NotificationScreen extends StatefulWidget {
   final int userId;
@@ -17,6 +18,7 @@ class NotificationScreen extends StatefulWidget {
 
 class _NotificationScreenState extends State<NotificationScreen> {
   final ApiService _apiService = ApiService();
+  final NotificationService _notificationService = NotificationService();
   List<AppNotification> _notifications = [];
   bool _isLoading = true;
   String? _error;
@@ -72,6 +74,20 @@ class _NotificationScreenState extends State<NotificationScreen> {
     }
   }
 
+  Future<void> _testLocalNotification() async {
+    await _notificationService.showNotification(
+      id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      title: 'Test Bildirimi',
+      body: 'Bu bir test bildirimidir. Randevunuz 1 saat sonra!',
+    );
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Test bildirimi gönderildi!')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final unreadCount = _notifications.where((n) => !n.isRead).length;
@@ -104,6 +120,11 @@ class _NotificationScreenState extends State<NotificationScreen> {
         backgroundColor: Colors.purple,
         actions: [
           IconButton(
+            icon: const Icon(Icons.notifications_active),
+            tooltip: 'Test Bildirimi',
+            onPressed: _testLocalNotification,
+          ),
+          IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _loadNotifications,
           ),
@@ -125,13 +146,22 @@ class _NotificationScreenState extends State<NotificationScreen> {
                   ),
                 )
               : _notifications.isEmpty
-                  ? const Center(
+                  ? Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.notifications_none, size: 64, color: Colors.grey),
-                          SizedBox(height: 16),
-                          Text('Henüz bildirim yok'),
+                          const Icon(Icons.notifications_none, size: 64, color: Colors.grey),
+                          const SizedBox(height: 16),
+                          const Text('Henüz bildirim yok'),
+                          const SizedBox(height: 16),
+                          ElevatedButton.icon(
+                            onPressed: _testLocalNotification,
+                            icon: const Icon(Icons.notifications),
+                            label: const Text('Test Bildirimi Gönder'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.purple,
+                            ),
+                          ),
                         ],
                       ),
                     )
@@ -180,7 +210,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                                 ),
                               ),
                               subtitle: Text(
-                                DateFormat('dd MMM yyyy, HH:mm', 'tr_TR')
+                                DateFormat('dd MMM yyyy, HH:mm')
                                     .format(notification.createdAt),
                                 style: const TextStyle(fontSize: 12),
                               ),
