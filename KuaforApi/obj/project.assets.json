@@ -3603,19 +3603,19 @@
     ]
   },
   "packageFolders": {
-    "/Users/tuanasimsek/.nuget/packages/": {}
+    "/Users/semanurcan/.nuget/packages/": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/Users/tuanasimsek/Documents/GitHub/Kuafor/KuaforApi/KuaforApi.csproj",
+      "projectUniqueName": "/Users/semanurcan/Desktop/ /yapay zeka ve uzman sistemler/Kuafor/KuaforApi/KuaforApi.csproj",
       "projectName": "KuaforApi",
-      "projectPath": "/Users/tuanasimsek/Documents/GitHub/Kuafor/KuaforApi/KuaforApi.csproj",
-      "packagesPath": "/Users/tuanasimsek/.nuget/packages/",
-      "outputPath": "/Users/tuanasimsek/Documents/GitHub/Kuafor/KuaforApi/obj/",
+      "projectPath": "/Users/semanurcan/Desktop/ /yapay zeka ve uzman sistemler/Kuafor/KuaforApi/KuaforApi.csproj",
+      "packagesPath": "/Users/semanurcan/.nuget/packages/",
+      "outputPath": "/Users/semanurcan/Desktop/ /yapay zeka ve uzman sistemler/Kuafor/KuaforApi/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "/Users/tuanasimsek/.nuget/NuGet/NuGet.Config"
+        "/Users/semanurcan/.nuget/NuGet/NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net9.0"
@@ -3695,7 +3695,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/9.0.304/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/9.0.306/PortableRuntimeIdentifierGraph.json"
       }
     }
   }

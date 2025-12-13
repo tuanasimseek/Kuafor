@@ -2,6 +2,7 @@ using KuaforApi.Data;
 using KuaforApi.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Threading.Tasks;
 
 namespace KuaforApi.Controllers;
 
