@@ -1,0 +1,16 @@
+# .NET
+bin/
+obj/
+
+# SQLite database
+*.db
+*.db-shm
+*.db-wal
+
+# Rider / VS / VSCode
+.vs/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
