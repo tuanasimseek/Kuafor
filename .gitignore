@@ -2,26 +2,15 @@
 bin/
 obj/
 
-# SQLite database
+# Rider / VS
+.vs/
+*.user
+*.suo
+
+# SQLite
 *.db
 *.db-shm
 *.db-wal
 
-# Rider / VS / VSCode
-.vs/
-.vscode/
-
-# OS
-.DS_Store
-Thumbs.db
-**/bin/
-**/obj/
-*.db
-*.db-shm
-*.db-wal
-**/bin/
-**/obj/
-*.db
-*.db-shm
-*.db-wal
-.vs/
+# Logs
+*.log
