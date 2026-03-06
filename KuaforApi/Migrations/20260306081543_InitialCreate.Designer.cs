@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace KuaforApi.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20251213140654_InitialCreate")]
+    [Migration("20260306081543_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -68,14 +68,17 @@ namespace KuaforApi.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<decimal?>("DiscountPercentage")
-                        .HasColumnType("numeric");
+                    b.Property<int>("DiscountPercent")
+                        .HasColumnType("integer");
 
-                    b.Property<DateTime>("EndDate")
+                    b.Property<DateTime?>("EndDate")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<bool>("IsActive")

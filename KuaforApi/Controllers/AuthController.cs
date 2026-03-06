@@ -23,13 +23,13 @@ namespace KuaforApi.Controllers
         public IActionResult Register([FromBody] RegisterRequest request)
         {
             string normalizedRole = request.Role switch
-            {
-                "Müşteri" => "Customer",
-                "Kuaför" => "Stylist",
-                "Salon Sahibi" => "SalonOwner",
-                "Admin" => "Admin",
-                _ => "Customer"
-            };
+                {
+                    "Müşteri" => "Customer",
+                    "Kuaför" => "Hairdresser",
+                    "Salon Sahibi" => "SalonOwner",
+                    "Admin" => "Admin",
+                    _ => "Customer"
+                };
 
             var user = new User
             {

@@ -4,10 +4,7 @@ using KuaforApi.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-<<<<<<< HEAD
-=======
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
->>>>>>> bfce3bbeaa8220ef7a117b52532cece3251f9ef1
 
 #nullable disable
 
@@ -19,9 +16,6 @@ namespace KuaforApi.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-<<<<<<< HEAD
-            modelBuilder.HasAnnotation("ProductVersion", "9.0.0");
-=======
             modelBuilder
                 .HasAnnotation("ProductVersion", "9.0.10")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
@@ -62,47 +56,26 @@ namespace KuaforApi.Migrations
 
                     b.ToTable("Appointments");
                 });
->>>>>>> bfce3bbeaa8220ef7a117b52532cece3251f9ef1
 
             modelBuilder.Entity("KuaforApi.Models.Campaign", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-<<<<<<< HEAD
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("DiscountPercent")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Campaigns");
-                });
-
-=======
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<decimal?>("DiscountPercentage")
-                        .HasColumnType("numeric");
+                    b.Property<int>("DiscountPercent")
+                        .HasColumnType("integer");
 
-                    b.Property<DateTime>("EndDate")
+                    b.Property<DateTime?>("EndDate")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<bool>("IsActive")
@@ -176,29 +149,10 @@ namespace KuaforApi.Migrations
                     b.ToTable("Notifications");
                 });
 
->>>>>>> bfce3bbeaa8220ef7a117b52532cece3251f9ef1
             modelBuilder.Entity("KuaforApi.Models.Review", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-<<<<<<< HEAD
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Comment")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("Rating")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Reviews");
-                });
-=======
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
@@ -438,7 +392,6 @@ namespace KuaforApi.Migrations
 
                     b.Navigation("Services");
                 });
->>>>>>> bfce3bbeaa8220ef7a117b52532cece3251f9ef1
 #pragma warning restore 612, 618
         }
     }
