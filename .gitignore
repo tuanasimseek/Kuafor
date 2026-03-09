@@ -17,3 +17,14 @@ obj/
 
 .DS_Store
 *.cache
+
+# Flutter
+build/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# Android Studio
+.idea/
+
+

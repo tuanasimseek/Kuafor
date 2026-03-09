@@ -1,32 +1,26 @@
 import 'package:flutter/material.dart';
-import 'screens/home_screen.dart';
-import 'services/notification_service.dart';
+import 'pages/login_page.dart';
+import 'pages/home_page.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  
-  // Local notification servisini başlat
-  await NotificationService().initialize();
-  
+void main() {
   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Kuaför Uygulaması',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.purple,
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.purple,
-        ),
-      ),
-      home: const HomeScreen(),
+      title: 'Kuaför App',
+      theme: ThemeData(primarySwatch: Colors.purple),
+      initialRoute: '/',
+      routes: {
+        '/': (context) => const LoginPage(),
+        // token olmadığı için HomePage burada const olamaz!
+        '/home': (context) => HomePage(token: ''), // geçici boş token
+      },
     );
   }
 }
