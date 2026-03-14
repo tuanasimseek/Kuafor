@@ -1,30 +1,42 @@
 import 'package:dio/dio.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class AuthService {
-  final Dio _dio = Dio(BaseOptions(
-    baseUrl: 'http://127.0.0.1:5069/api', // iOS simülatör için
-    connectTimeout: const Duration(seconds: 5),
-    receiveTimeout: const Duration(seconds: 5),
-  ));
+  final Dio _dio = Dio(
+    BaseOptions(
+      baseUrl: 'http://127.0.0.1:5069/api',
+      connectTimeout: const Duration(seconds: 5),
+      receiveTimeout: const Duration(seconds: 5),
+    ),
+  );
+
+  final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
   // 🔹 Login
   Future<String?> login(String email, String password) async {
     try {
       final response = await _dio.post(
         '/Auth/login',
-        data: {'email': email, 'password': password},
+        data: {
+          'email': email,
+          'password': password,
+        },
       );
 
       print('🔹 Login response: ${response.data}');
 
       if (response.statusCode == 200 && response.data['token'] != null) {
-        return response.data['token'];
-      } else {
-        print('Login başarısız: ${response.statusCode}');
-        return null;
+        final token = response.data['token'].toString();
+        await saveToken(token);
+        return token;
       }
+
+      return null;
+    } on DioException catch (e) {
+      print('Login Dio hatası: ${e.response?.data ?? e.message}');
+      return null;
     } catch (e) {
-      print('Login hatası: $e');
+      print('Login genel hata: $e');
       return null;
     }
   }
@@ -49,14 +61,12 @@ class AuthService {
 
       print('🔹 Register response: ${response.data}');
 
-      if (response.statusCode == 200) {
-        return true;
-      } else {
-        print('Register başarısız: ${response.data}');
-        return false;
-      }
+      return response.statusCode == 200 || response.statusCode == 201;
+    } on DioException catch (e) {
+      print('Register Dio hatası: ${e.response?.data ?? e.message}');
+      return false;
     } catch (e) {
-      print('Register hatası: $e');
+      print('Register genel hata: $e');
       return false;
     }
   }
@@ -66,7 +76,11 @@ class AuthService {
     try {
       final response = await _dio.get(
         '/Users/me',
-        options: Options(headers: {'Authorization': 'Bearer $token'}),
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+          },
+        ),
       );
 
       print('🔹 /Users/me yanıtı: ${response.data}');
@@ -74,20 +88,38 @@ class AuthService {
       if (response.statusCode == 200 && response.data != null) {
         final data = response.data;
 
-        // Backend'te sadece email ve message dönüyor, Flutter tarafı için genişletelim
         return {
           'email': data['email'] ?? '',
-          'name': data['email']?.split('@').first ?? 'Kullanıcı',
-          'role': data['role'] ?? 'admin', // varsayılan admin
+          'name': data['fullName'] ??
+              data['name'] ??
+              (data['email']?.toString().split('@').first ?? 'Kullanıcı'),
+          'role': data['role'] ?? '',
           'message': data['message'] ?? '',
         };
-      } else {
-        print('Kullanıcı bilgisi alınamadı, durum: ${response.statusCode}');
-        return null;
       }
+
+      return null;
+    } on DioException catch (e) {
+      print('Kullanıcı bilgisi Dio hatası: ${e.response?.data ?? e.message}');
+      return null;
     } catch (e) {
-      print('Kullanıcı bilgisi alınamadı: $e');
+      print('Kullanıcı bilgisi genel hata: $e');
       return null;
     }
+  }
+
+  // 🔹 Token kaydet
+  Future<void> saveToken(String token) async {
+    await _storage.write(key: 'jwt_token', value: token);
+  }
+
+  // 🔹 Token oku
+  Future<String?> getToken() async {
+    return await _storage.read(key: 'jwt_token');
+  }
+
+  // 🔹 Token sil
+  Future<void> deleteToken() async {
+    await _storage.delete(key: 'jwt_token');
   }
 }

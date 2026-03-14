@@ -22,20 +22,33 @@ class _LoginPageState extends State<LoginPage> {
   String? _errorMessage;
 
   Future<void> _login() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (email.isEmpty || password.isEmpty) {
+      setState(() {
+        _errorMessage = "Lütfen e-posta ve şifre alanlarını doldurun.";
+      });
+      return;
+    }
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
-    final token = await _authService.login(
-      _emailController.text.trim(),
-      _passwordController.text.trim(),
-    );
+    final token = await _authService.login(email, password);
+
+    if (!mounted) return;
 
     if (token != null && token.isNotEmpty) {
       final user = await _authService.getUserInfo(token);
 
-      setState(() => _isLoading = false);
+      if (!mounted) return;
+
+      setState(() {
+        _isLoading = false;
+      });
 
       if (user != null) {
         final role = user['role'];
@@ -91,6 +104,13 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Kuaför Giriş")),
@@ -102,6 +122,7 @@ class _LoginPageState extends State<LoginPage> {
             TextField(
               controller: _emailController,
               decoration: const InputDecoration(labelText: "E-posta"),
+              keyboardType: TextInputType.emailAddress,
             ),
             const SizedBox(height: 16),
             TextField(
@@ -113,12 +134,14 @@ class _LoginPageState extends State<LoginPage> {
             _isLoading
                 ? const CircularProgressIndicator()
                 : ElevatedButton(
-              onPressed: _login,
+              onPressed: _isLoading ? null : _login,
               child: const Text("Giriş Yap"),
             ),
             const SizedBox(height: 12),
             TextButton(
-              onPressed: () {
+              onPressed: _isLoading
+                  ? null
+                  : () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -133,6 +156,7 @@ class _LoginPageState extends State<LoginPage> {
               Text(
                 _errorMessage!,
                 style: const TextStyle(color: Colors.red),
+                textAlign: TextAlign.center,
               ),
             ],
           ],

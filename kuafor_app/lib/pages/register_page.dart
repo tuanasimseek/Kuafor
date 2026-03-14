@@ -13,6 +13,7 @@ class _RegisterPageState extends State<RegisterPage> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
 
   String _selectedRole = 'Müşteri';
   final AuthService _authService = AuthService();
@@ -21,6 +22,40 @@ class _RegisterPageState extends State<RegisterPage> {
   String? _message;
 
   Future<void> _register() async {
+    final fullName = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+    final confirmPassword = _confirmPasswordController.text.trim();
+
+    if (fullName.isEmpty || email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
+      setState(() {
+        _message = "Lütfen tüm alanları doldurun.";
+      });
+      return;
+    }
+
+    final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
+    if (!emailRegex.hasMatch(email)) {
+      setState(() {
+        _message = "Lütfen geçerli bir e-posta adresi girin.";
+      });
+      return;
+    }
+
+    if (password.length < 6) {
+      setState(() {
+        _message = "Şifre en az 6 karakter olmalıdır.";
+      });
+      return;
+    }
+
+    if (password != confirmPassword) {
+      setState(() {
+        _message = "Şifreler birbiriyle eşleşmiyor.";
+      });
+      return;
+    }
+
     setState(() {
       _isLoading = true;
       _message = null;
@@ -34,13 +69,17 @@ class _RegisterPageState extends State<RegisterPage> {
     };
 
     final success = await _authService.register(
-      fullName: _nameController.text.trim(),
-      email: _emailController.text.trim(),
-      password: _passwordController.text.trim(),
+      fullName: fullName,
+      email: email,
+      password: password,
       role: roleMap[_selectedRole]!,
     );
 
-    setState(() => _isLoading = false);
+    if (!mounted) return;
+
+    setState(() {
+      _isLoading = false;
+    });
 
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -56,6 +95,15 @@ class _RegisterPageState extends State<RegisterPage> {
         _message = "Kayıt başarısız. Bu e-posta zaten kayıtlı olabilir.";
       });
     }
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
   }
 
   @override
@@ -75,6 +123,7 @@ class _RegisterPageState extends State<RegisterPage> {
             TextField(
               controller: _emailController,
               decoration: const InputDecoration(labelText: "E-posta"),
+              keyboardType: TextInputType.emailAddress,
             ),
             const SizedBox(height: 12),
             TextField(
@@ -83,16 +132,27 @@ class _RegisterPageState extends State<RegisterPage> {
               decoration: const InputDecoration(labelText: "Şifre"),
             ),
             const SizedBox(height: 12),
+            TextField(
+              controller: _confirmPasswordController,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: "Şifre Tekrar"),
+            ),
+            const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               value: _selectedRole,
               decoration: const InputDecoration(labelText: "Rol Seç"),
               items: const [
                 DropdownMenuItem(value: 'Müşteri', child: Text("Müşteri")),
                 DropdownMenuItem(value: 'Kuaför', child: Text("Kuaför")),
-                DropdownMenuItem(value: 'Salon Sahibi', child: Text("Salon Sahibi")),
+                DropdownMenuItem(
+                  value: 'Salon Sahibi',
+                  child: Text("Salon Sahibi"),
+                ),
                 DropdownMenuItem(value: 'Admin', child: Text("Admin")),
               ],
-              onChanged: (value) {
+              onChanged: _isLoading
+                  ? null
+                  : (value) {
                 setState(() {
                   _selectedRole = value!;
                 });
@@ -102,7 +162,7 @@ class _RegisterPageState extends State<RegisterPage> {
             _isLoading
                 ? const CircularProgressIndicator()
                 : ElevatedButton(
-              onPressed: _register,
+              onPressed: _isLoading ? null : _register,
               child: const Text("Kayıt Ol"),
             ),
             if (_message != null) ...[
@@ -110,6 +170,7 @@ class _RegisterPageState extends State<RegisterPage> {
               Text(
                 _message!,
                 style: const TextStyle(color: Colors.red),
+                textAlign: TextAlign.center,
               ),
             ],
           ],
