@@ -10,29 +10,17 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-<<<<<<< HEAD
-  dio: ^5.7.0
-  flutter_secure_storage: ^9.2.2
-  shared_preferences: ^2.3.2
 
-  # The following adds the Cupertino Icons font to your application.
-  # Use with the CupertinoIcons class for iOS style icons.
-  cupertino_icons: ^1.0.8
-<<<<<<< HEAD
-=======
-=======
   cupertino_icons: ^1.0.8
   dio: ^5.7.0
   flutter_secure_storage: ^9.2.2
   shared_preferences: ^2.5.3
->>>>>>> f572fa4 (Pubspec birlestirme duzeltmesi)
   http: ^1.6.0
   provider: ^6.1.5+1
   intl: ^0.20.2
   flutter_local_notifications: ^19.5.0
   firebase_core: ^4.2.1
   firebase_messaging: ^16.0.4
->>>>>>> e783925 (s)
 
 dev_dependencies:
   flutter_test:
