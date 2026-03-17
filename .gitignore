@@ -27,4 +27,4 @@ build/
 # Android Studio
 .idea/
 
-
+.DS_Store
