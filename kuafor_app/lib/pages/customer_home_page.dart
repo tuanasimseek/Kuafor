@@ -6,8 +6,35 @@ import '../screens/reviews_screen.dart';
 import '../screens/campaigns_screen.dart';
 import '../screens/notifications_screen.dart';
 
-class CustomerHomePage extends StatelessWidget {
+class CustomerHomePage extends StatefulWidget {
   const CustomerHomePage({super.key});
+
+  @override
+  State<CustomerHomePage> createState() => _CustomerHomePageState();
+}
+
+class _CustomerHomePageState extends State<CustomerHomePage> {
+  final AuthService _authService = AuthService();
+  int _userId = 0;
+  String _userName = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUser();
+  }
+
+  Future<void> _loadUser() async {
+    final token = await _authService.getToken();
+    if (token == null) return;
+    final user = await _authService.getUserInfo(token);
+    if (user != null) {
+      setState(() {
+        _userId = user['id'] ?? 0;
+        _userName = user['name'] ?? '';
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +48,7 @@ class CustomerHomePage extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => const NotificationsScreen(userId: 1),
+                  builder: (_) => NotificationsScreen(userId: _userId),
                 ),
               );
             },
@@ -38,7 +65,7 @@ class CustomerHomePage extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
-              await AuthService().deleteToken();
+              await _authService.deleteToken();
               Navigator.pushAndRemoveUntil(
                 context,
                 MaterialPageRoute(builder: (_) => const LoginPage()),
@@ -53,9 +80,9 @@ class CustomerHomePage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
-              'Hoş geldiniz 💇‍♀️',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            Text(
+              'Hoş geldiniz, $_userName 💇‍♀️',
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 24),
             _MenuCard(
@@ -77,7 +104,7 @@ class CustomerHomePage extends StatelessWidget {
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => const ReviewsScreen(salonId: 1, userId: 1),
+                  builder: (_) => ReviewsScreen(salonId: 1, userId: _userId),
                 ),
               ),
             ),
@@ -90,7 +117,7 @@ class CustomerHomePage extends StatelessWidget {
               onTap: () => Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => const NotificationsScreen(userId: 1),
+                  builder: (_) => NotificationsScreen(userId: _userId),
                 ),
               ),
             ),

@@ -30,6 +30,7 @@ namespace KuaforApi.Controllers
 
             return Ok(new
             {
+                Id = user.Id,
                 FullName = user.FullName,
                 Email = user.Email,
                 Role = user.Role

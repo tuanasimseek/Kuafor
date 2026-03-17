@@ -89,6 +89,7 @@ class AuthService {
         final data = response.data;
 
         return {
+          'id': data['id'] ?? 0,
           'email': data['email'] ?? '',
           'name': data['fullName'] ??
               data['name'] ??
