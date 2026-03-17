@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "857644343778",
+    "project_id": "kuaforapp12345",
+    "storage_bucket": "kuaforapp12345.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:857644343778:android:08d3e955827bdf604b59bb",
+        "android_client_info": {
+          "package_name": "com.example.kuafor_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyACvVQtCxQTvJ169pA50mC3Ibtt53S6WNw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
