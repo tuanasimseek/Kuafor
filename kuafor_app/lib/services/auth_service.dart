@@ -114,14 +114,18 @@ class AuthService {
       if (response.statusCode == 200 && response.data != null) {
         final data = response.data;
 
+        final role = data['Role'] ?? data['role'] ?? '';
+        print('🔴 ROLE DEĞERİ: "$role"');
+
         return {
-          'id': data['id'] ?? 0,
-          'email': data['email'] ?? '',
-          'name': data['fullName'] ??
+          'id': data['Id'] ?? data['id'] ?? 0,
+          'email': data['Email'] ?? data['email'] ?? '',
+          'name': data['FullName'] ??
+              data['fullName'] ??
               data['name'] ??
               (data['email']?.toString().split('@').first ?? 'Kullanıcı'),
-          'role': data['role'] ?? '',
-          'message': data['message'] ?? '',
+          'role': role,
+          'message': data['Message'] ?? data['message'] ?? '',
         };
       }
 
