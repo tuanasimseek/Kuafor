@@ -22,14 +22,25 @@ namespace KuaforApi.Controllers
         [HttpPost("register")]
         public IActionResult Register([FromBody] RegisterRequest request)
         {
-            string normalizedRole = request.Role switch
-                {
-                    "Müşteri" => "Customer",
-                    "Kuaför" => "Hairdresser",
-                    "Salon Sahibi" => "SalonOwner",
-                    "Admin" => "Admin",
-                    _ => "Customer"
-                };
+            Console.WriteLine($"GELEN ROLE: {request.Role}");
+            
+            string normalizedRole = request.Role?.Trim() switch
+                    {
+                        "Müşteri" => "Customer",
+                        "Customer" => "Customer",
+
+                        "Kuaför" => "Hairdresser",
+                        "Hairdresser" => "Hairdresser",
+
+                        "Salon Sahibi" => "SalonOwner",
+                        "SalonOwner" => "SalonOwner",
+
+                        "Admin" => "Admin",
+
+                        _ => "Customer"
+                    };
+                    Console.WriteLine($"NORMALIZED ROLE: {normalizedRole}");
+            
 
             var user = new User
             {

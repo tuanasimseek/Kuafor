@@ -9,7 +9,7 @@ public class User
     public string PasswordHash { get; set; } = string.Empty;
 
     // admin / owner / employee / customer
-    public string Role { get; set; } = "customer";  
+    public string Role { get; set; } = "Customer";  
 
     // Kuaförün uzmanlık alanı
     public string? Specialty { get; set; }
