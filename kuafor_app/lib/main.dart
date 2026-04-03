@@ -9,12 +9,15 @@ import 'services/auth_service.dart';
 import 'services/firebase_service.dart';
 import 'services/notification_service.dart';
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
   await NotificationService().initLocalNotifications();
+
   if (!kIsWeb) {
     await FirebaseService().initialize();
   }
+
   runApp(const MyApp());
 }
 
