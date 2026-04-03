@@ -10,15 +10,6 @@ import '../screens/notifications_screen.dart';
 class CustomerHomePage extends StatefulWidget {
   const CustomerHomePage({super.key});
 
-  Future<void> _logout(BuildContext context) async {
-    await AuthService().deleteToken();
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (_) => const LoginPage()),
-          (route) => false,
-    );
-  }
-
   @override
   State<CustomerHomePage> createState() => _CustomerHomePageState();
 }
@@ -37,6 +28,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
   Future<void> _loadUser() async {
     final token = await _authService.getToken();
     if (token == null) return;
+
     final user = await _authService.getUserInfo(token);
     if (user != null) {
       setState(() {
@@ -46,13 +38,21 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
     }
   }
 
+  Future<void> _logout(BuildContext context) async {
+    await _authService.deleteToken();
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const LoginPage()),
+      (route) => false,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Column(
         children: [
-          // ── Üst başlık ────────────────────────────────────
           Container(
             color: AppColors.primary,
             padding: EdgeInsets.only(
@@ -66,184 +66,100 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text(
-                        'STİLİST',
+                    children: [
+                      const Text(
+                        'MÜŞTERİ',
                         style: TextStyle(
                           color: AppColors.accent,
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
-                          letterSpacing: 2,
                         ),
                       ),
-                      SizedBox(height: 4),
+                      const SizedBox(height: 4),
                       Text(
-                        'Hoş geldiniz',
-                        style: TextStyle(
+                        'Hoş geldiniz, $_userName',
+                        style: const TextStyle(
                           color: AppColors.white,
                           fontSize: 22,
-                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ],
                   ),
                 ),
                 GestureDetector(
-                  onTap: () => Navigator.push(context,
-                      MaterialPageRoute(
-                         builder: (_) => NotificationsScreen(userId: _userId))),
-                  child: _HeaderBtn(icon: Icons.notifications_outlined),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          NotificationsScreen(userId: _userId),
+                    ),
+                  ),
+                  child: const Icon(Icons.notifications, color: Colors.white),
                 ),
                 const SizedBox(width: 10),
                 GestureDetector(
-                  onTap: () => Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => const ProfilePage())),
-                  child: _HeaderBtn(icon: Icons.person_outline_rounded),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ProfilePage()),
+                  ),
+                  child: const Icon(Icons.person, color: Colors.white),
                 ),
                 const SizedBox(width: 10),
                 GestureDetector(
                   onTap: () => _logout(context),
-                  child: _HeaderBtn(
-                      icon: Icons.logout_rounded, accent: true),
+                  child: const Icon(Icons.logout, color: Colors.white),
                 ),
               ],
             ),
           ),
 
-          // ── İçerik ────────────────────────────────────────
           Expanded(
-            child: SingleChildScrollView(
+            child: Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Ne yapmak istersiniz?',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.muted,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-
-                  _MenuCard(
-                    icon: Icons.campaign_outlined,
-                    title: 'Kampanyalar',
-                    subtitle: 'Aktif indirim ve fırsatları görüntüle',
-                    onTap: () => Navigator.push(context,
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
                         MaterialPageRoute(
-                            builder: (_) => const CampaignsScreen())),
+                          builder: (_) => const CampaignsScreen(),
+                        ),
+                      );
+                    },
+                    child: const Text("Kampanyalar"),
                   ),
-                  const SizedBox(height: 10),
-                  _MenuCard(
-                    icon: Icons.star_outline_rounded,
-                    title: 'Yorumlar',
-                    subtitle: 'Salon yorumlarını gör ve yorum ekle',
-                    onTap: () => Navigator.push(context,
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
                         MaterialPageRoute(
-                            builder: (_) => ReviewsScreen(salonId: 1, userId: _userId))),
+                          builder: (_) => ReviewsScreen(
+                            salonId: 1,
+                            userId: _userId,
+                          ),
+                        ),
+                      );
+                    },
+                    child: const Text("Yorumlar"),
                   ),
-                  const SizedBox(height: 10),
-                  _MenuCard(
-                    icon: Icons.notifications_outlined,
-                    title: 'Bildirimler',
-                    subtitle: 'Randevu ve salon bildirimlerini görüntüle',
-                    onTap: () => Navigator.push(context,
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
                         MaterialPageRoute(
-                            builder: (_) =>
-                            const NotificationsScreen(userId: _userId))),
+                          builder: (_) =>
+                              NotificationsScreen(userId: _userId),
+                        ),
+                      );
+                    },
+                    child: const Text("Bildirimler"),
                   ),
                 ],
               ),
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-// ── Header ikon butonu ───────────────────────────────────────
-class _HeaderBtn extends StatelessWidget {
-  final IconData icon;
-  final bool accent;
-  const _HeaderBtn({required this.icon, this.accent = false});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 40,
-      height: 40,
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withOpacity(0.12)),
-      ),
-      child: Icon(icon,
-          color: accent ? AppColors.accent : AppColors.white, size: 20),
-    );
-  }
-}
-
-// ── Menü kartı ───────────────────────────────────────────────
-class _MenuCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-
-  const _MenuCard({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, size: 20, color: AppColors.primary),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title,
-                      style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.primary)),
-                  const SizedBox(height: 3),
-                  Text(subtitle,
-                      style: const TextStyle(
-                          fontSize: 12, color: AppColors.muted)),
-                ],
-              ),
-            ),
-            const Icon(Icons.chevron_right_rounded,
-                color: AppColors.muted, size: 20),
-          ],
-        ),
       ),
     );
   }
