@@ -1,12 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'pages/login_page.dart';
 import 'pages/customer_home_page.dart';
 import 'pages/stylist_home_page.dart';
 import 'pages/salon_owner_home_page.dart';
 import 'pages/admin_dashboard.dart';
 import 'services/auth_service.dart';
+import 'services/firebase_service.dart';
+import 'services/notification_service.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await NotificationService().initLocalNotifications();
+  if (!kIsWeb) {
+    await FirebaseService().initialize();
+  }
   runApp(const MyApp());
 }
 
@@ -83,7 +91,6 @@ class _SplashDeciderState extends State<SplashDecider> {
 
   void _goTo(Widget page) {
     if (!mounted) return;
-
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (_) => page),
