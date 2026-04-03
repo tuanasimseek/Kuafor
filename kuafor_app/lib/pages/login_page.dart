@@ -59,7 +59,7 @@ class _LoginPageState extends State<LoginPage> {
               MaterialPageRoute(builder: (_) => const StylistHomePage()));
         } else if (role == 'SalonOwner') {
           Navigator.pushReplacement(context,
-              MaterialPageRoute(builder: (_) => const SalonOwnerHomePage()));
+              MaterialPageRoute(builder: (_) => SalonOwnerHomePage()));
         } else if (role == 'Admin') {
           Navigator.pushReplacement(context,
               MaterialPageRoute(builder: (_) => const AdminDashboard()));

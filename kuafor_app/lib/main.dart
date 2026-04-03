@@ -81,7 +81,7 @@ class _SplashDeciderState extends State<SplashDecider> {
       case 'Hairdresser':
         return const StylistHomePage();
       case 'SalonOwner':
-        return const SalonOwnerHomePage();
+        return SalonOwnerHomePage();
       case 'Admin':
         return const AdminDashboard();
       default:
@@ -100,9 +100,7 @@ class _SplashDeciderState extends State<SplashDecider> {
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
-      body: Center(
-        child: CircularProgressIndicator(),
-      ),
+      body: Center(child: CircularProgressIndicator()),
     );
   }
 }

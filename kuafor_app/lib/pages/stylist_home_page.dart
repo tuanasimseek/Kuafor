@@ -1,18 +1,59 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../services/salon_service.dart';
 import '../widgets/app_widgets.dart';
+import '../screens/notifications_screen.dart';
+import '../screens/reviews_readonly_screen.dart';
+import '../screens/availability_screen.dart';
+import '../screens/appointments_placeholder_screen.dart';
+import '../screens/stylist_services_screen.dart';
 import 'login_page.dart';
 import 'profile_page.dart';
 
-class StylistHomePage extends StatelessWidget {
+class StylistHomePage extends StatefulWidget {
   const StylistHomePage({super.key});
 
+  @override
+  State<StylistHomePage> createState() => _StylistHomePageState();
+}
+
+class _StylistHomePageState extends State<StylistHomePage> {
+  final AuthService _authService = AuthService();
+  final SalonService _salonService = SalonService();
+  int _userId = 0;
+  int _salonId = 0;
+  String _userName = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUser();
+  }
+
+  Future<void> _loadUser() async {
+    final token = await _authService.getToken();
+    if (token == null) return;
+    final user = await _authService.getUserInfo(token);
+    if (user != null) {
+      final userId = user['id'] ?? 0;
+      setState(() {
+        _userId = userId;
+        _userName = user['name'] ?? '';
+      });
+      // DÜZELTİLDİ: getSalonByOwner → getSalonByStylist
+      final salon = await _salonService.getSalonByStylist(userId);
+      if (salon != null) {
+        setState(() => _salonId = salon['id'] ?? 0);
+      }
+    }
+  }
+
   Future<void> _logout(BuildContext context) async {
-    await AuthService().deleteToken();
+    await _authService.deleteToken();
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (_) => const LoginPage()),
-          (route) => false,
+      (route) => false,
     );
   }
 
@@ -35,8 +76,8 @@ class StylistHomePage extends StatelessWidget {
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text(
+                    children: [
+                      const Text(
                         'STİLİST',
                         style: TextStyle(
                           color: AppColors.accent,
@@ -45,10 +86,10 @@ class StylistHomePage extends StatelessWidget {
                           letterSpacing: 2,
                         ),
                       ),
-                      SizedBox(height: 4),
+                      const SizedBox(height: 4),
                       Text(
-                        'Kuaför Paneli',
-                        style: TextStyle(
+                        'Hoş geldiniz, $_userName',
+                        style: const TextStyle(
                           color: AppColors.white,
                           fontSize: 22,
                           fontWeight: FontWeight.w500,
@@ -58,15 +99,26 @@ class StylistHomePage extends StatelessWidget {
                   ),
                 ),
                 GestureDetector(
-                  onTap: () => Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => const ProfilePage())),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => NotificationsScreen(userId: _userId),
+                    ),
+                  ),
+                  child: _HeaderBtn(icon: Icons.notifications_outlined),
+                ),
+                const SizedBox(width: 10),
+                GestureDetector(
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ProfilePage()),
+                  ),
                   child: _HeaderBtn(icon: Icons.person_outline_rounded),
                 ),
                 const SizedBox(width: 10),
                 GestureDetector(
                   onTap: () => _logout(context),
-                  child: _HeaderBtn(
-                      icon: Icons.logout_rounded, accent: true),
+                  child: _HeaderBtn(icon: Icons.logout_rounded, accent: true),
                 ),
               ],
             ),
@@ -91,21 +143,65 @@ class StylistHomePage extends StatelessWidget {
                     icon: Icons.calendar_month_outlined,
                     title: 'Randevularım',
                     subtitle: 'Günlük ve haftalık randevularını gör',
-                    onTap: () {},
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const AppointmentsPlaceholderScreen(),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 10),
                   _MenuCard(
                     icon: Icons.content_cut_rounded,
                     title: 'Hizmetlerim',
                     subtitle: 'Sunduğun hizmetleri düzenle',
-                    onTap: () {},
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        // DÜZELTİLDİ: salonId de geçiriliyor
+                        builder: (_) => StylistServicesScreen(
+                          stylistId: _userId,
+                          salonId: _salonId,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  _MenuCard(
+                    icon: Icons.star_outline_rounded,
+                    title: 'Müşteri Yorumları',
+                    subtitle: 'Sana yapılan yorumları görüntüle',
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            ReviewsReadOnlyScreen(salonId: _salonId),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  _MenuCard(
+                    icon: Icons.notifications_outlined,
+                    title: 'Bildirimler',
+                    subtitle: 'Randevu ve sistem bildirimlerini gör',
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => NotificationsScreen(userId: _userId),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 10),
                   _MenuCard(
                     icon: Icons.access_time_rounded,
                     title: 'Müsaitlik Saatleri',
                     subtitle: 'Çalışma takvimini ayarla',
-                    onTap: () {},
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => AvailabilityScreen(userId: _userId),
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -185,8 +281,8 @@ class _MenuCard extends StatelessWidget {
                           color: AppColors.primary)),
                   const SizedBox(height: 3),
                   Text(subtitle,
-                      style: const TextStyle(
-                          fontSize: 12, color: AppColors.muted)),
+                      style:
+                          const TextStyle(fontSize: 12, color: AppColors.muted)),
                 ],
               ),
             ),

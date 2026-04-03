@@ -1,18 +1,58 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../services/salon_service.dart';
 import '../widgets/app_widgets.dart';
+import '../screens/notifications_screen.dart';
+import '../screens/campaigns_screen.dart';
+import '../screens/reviews_readonly_screen.dart';
+import '../screens/services_management_screen.dart';
+import '../screens/appointments_placeholder_screen.dart';
 import 'login_page.dart';
 import 'profile_page.dart';
 
-class SalonOwnerHomePage extends StatelessWidget {
+class SalonOwnerHomePage extends StatefulWidget {
   const SalonOwnerHomePage({super.key});
 
+  @override
+  State<SalonOwnerHomePage> createState() => _SalonOwnerHomePageState();
+}
+
+class _SalonOwnerHomePageState extends State<SalonOwnerHomePage> {
+  final AuthService _authService = AuthService();
+  final SalonService _salonService = SalonService();
+  int _userId = 0;
+  int _salonId = 0;
+  String _userName = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUser();
+  }
+
+  Future<void> _loadUser() async {
+    final token = await _authService.getToken();
+    if (token == null) return;
+    final user = await _authService.getUserInfo(token);
+    if (user != null) {
+      final userId = user['id'] ?? 0;
+      setState(() {
+        _userId = userId;
+        _userName = user['name'] ?? '';
+      });
+      final salon = await _salonService.getSalonByOwner(userId);
+      if (salon != null) {
+        setState(() => _salonId = salon['id'] ?? 0);
+      }
+    }
+  }
+
   Future<void> _logout(BuildContext context) async {
-    await AuthService().deleteToken();
+    await _authService.deleteToken();
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (_) => const LoginPage()),
-          (route) => false,
+      (route) => false,
     );
   }
 
@@ -35,9 +75,9 @@ class SalonOwnerHomePage extends StatelessWidget {
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text(
-                        'STİLİST',
+                    children: [
+                      const Text(
+                        'SALON SAHİBİ',
                         style: TextStyle(
                           color: AppColors.accent,
                           fontSize: 11,
@@ -45,10 +85,10 @@ class SalonOwnerHomePage extends StatelessWidget {
                           letterSpacing: 2,
                         ),
                       ),
-                      SizedBox(height: 4),
+                      const SizedBox(height: 4),
                       Text(
-                        'Salon Paneli',
-                        style: TextStyle(
+                        'Hoş geldiniz, $_userName',
+                        style: const TextStyle(
                           color: AppColors.white,
                           fontSize: 22,
                           fontWeight: FontWeight.w500,
@@ -58,15 +98,26 @@ class SalonOwnerHomePage extends StatelessWidget {
                   ),
                 ),
                 GestureDetector(
-                  onTap: () => Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => const ProfilePage())),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => NotificationsScreen(userId: _userId),
+                    ),
+                  ),
+                  child: _HeaderBtn(icon: Icons.notifications_outlined),
+                ),
+                const SizedBox(width: 10),
+                GestureDetector(
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ProfilePage()),
+                  ),
                   child: _HeaderBtn(icon: Icons.person_outline_rounded),
                 ),
                 const SizedBox(width: 10),
                 GestureDetector(
                   onTap: () => _logout(context),
-                  child: _HeaderBtn(
-                      icon: Icons.logout_rounded, accent: true),
+                  child: _HeaderBtn(icon: Icons.logout_rounded, accent: true),
                 ),
               ],
             ),
@@ -91,28 +142,89 @@ class SalonOwnerHomePage extends StatelessWidget {
                     icon: Icons.people_outline_rounded,
                     title: 'Çalışanlar',
                     subtitle: 'Kuaförlerini ve personelini yönet',
-                    onTap: () {},
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            const AppointmentsPlaceholderScreen(),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 10),
                   _MenuCard(
                     icon: Icons.content_cut_rounded,
                     title: 'Hizmetler',
                     subtitle: 'Salon hizmetlerini düzenle ve fiyatlandır',
-                    onTap: () {},
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            ServicesManagementScreen(salonId: _salonId),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 10),
                   _MenuCard(
                     icon: Icons.calendar_month_outlined,
                     title: 'Randevular',
                     subtitle: 'Tüm salon randevularını görüntüle',
-                    onTap: () {},
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            const AppointmentsPlaceholderScreen(),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  _MenuCard(
+                    icon: Icons.campaign_outlined,
+                    title: 'Kampanyalar',
+                    subtitle: 'Aktif kampanyaları görüntüle ve yönet',
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const CampaignsScreen(),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  _MenuCard(
+                    icon: Icons.star_outline_rounded,
+                    title: 'Yorumlar',
+                    subtitle: 'Müşteri yorumlarını takip et',
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            ReviewsReadOnlyScreen(salonId: _salonId),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  _MenuCard(
+                    icon: Icons.notifications_outlined,
+                    title: 'Bildirimler',
+                    subtitle: 'Salon bildirimlerini görüntüle',
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => NotificationsScreen(userId: _userId),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 10),
                   _MenuCard(
                     icon: Icons.bar_chart_rounded,
                     title: 'Raporlar',
                     subtitle: 'Gelir ve performans istatistikleri',
-                    onTap: () {},
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            const AppointmentsPlaceholderScreen(),
+                      ),
+                    ),
                   ),
                 ],
               ),

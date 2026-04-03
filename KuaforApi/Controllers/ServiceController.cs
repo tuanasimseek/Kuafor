@@ -26,13 +26,27 @@ public class ServiceController : ControllerBase
         return Ok(services);
     }
 
+    // GET: api/service/stylist/{stylistId}
+    [HttpGet("stylist/{stylistId}")]
+    public async Task<IActionResult> GetStylistServices(int stylistId)
+    {
+        var services = await _context.Services
+            .Where(s => s.StylistId == stylistId)
+            .ToListAsync();
+        return Ok(services);
+    }
+
     // POST: api/service
     [HttpPost]
     public async Task<IActionResult> CreateService([FromBody] Service service)
     {
-        var salonExists = await _context.Salons.AnyAsync(s => s.Id == service.SalonId);
-        if (!salonExists)
-            return BadRequest(new { message = "Salon bulunamadı" });
+        // SalonId varsa salon kontrolü yap, yoksa stylist hizmeti olarak ekle
+        if (service.SalonId != null && service.SalonId != 0)
+        {
+            var salonExists = await _context.Salons.AnyAsync(s => s.Id == service.SalonId);
+            if (!salonExists)
+                return BadRequest(new { message = "Salon bulunamadı" });
+        }
 
         _context.Services.Add(service);
         await _context.SaveChangesAsync();
@@ -43,10 +57,14 @@ public class ServiceController : ControllerBase
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateService(int id, [FromBody] Service service)
     {
-        if (id != service.Id)
-            return BadRequest();
+        var existing = await _context.Services.FindAsync(id);
+        if (existing == null)
+            return NotFound();
 
-        _context.Entry(service).State = EntityState.Modified;
+        existing.Name = service.Name;
+        existing.Price = service.Price;
+        existing.DurationMinutes = service.DurationMinutes;
+
         await _context.SaveChangesAsync();
         return NoContent();
     }
