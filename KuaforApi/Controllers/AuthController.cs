@@ -18,29 +18,24 @@ namespace KuaforApi.Controllers
             _authService = authService;
         }
 
-        // 📌 Kayıt Ol (Register)
         [HttpPost("register")]
         public IActionResult Register([FromBody] RegisterRequest request)
         {
-            Console.WriteLine($"GELEN ROLE: {request.Role}");
-            
             string normalizedRole = request.Role?.Trim() switch
-                    {
-                        "Müşteri" => "Customer",
-                        "Customer" => "Customer",
+            {
+                "Müşteri" => "Customer",
+                "Customer" => "Customer",
 
-                        "Kuaför" => "Hairdresser",
-                        "Hairdresser" => "Hairdresser",
+                "Kuaför" => "Hairdresser",
+                "Hairdresser" => "Hairdresser",
 
-                        "Salon Sahibi" => "SalonOwner",
-                        "SalonOwner" => "SalonOwner",
+                "Salon Sahibi" => "SalonOwner",
+                "SalonOwner" => "SalonOwner",
 
-                        "Admin" => "Admin",
+                "Admin" => "Admin",
 
-                        _ => "Customer"
-                    };
-                    Console.WriteLine($"NORMALIZED ROLE: {normalizedRole}");
-            
+                _ => "Customer"
+            };
 
             var user = new User
             {
@@ -48,7 +43,7 @@ namespace KuaforApi.Controllers
                 Email = request.Email,
                 Role = normalizedRole
             };
-            
+
             var success = _authService.Register(user, request.Password);
             if (!success)
                 return BadRequest(new { message = "Bu e-posta zaten kayıtlı." });
@@ -56,26 +51,44 @@ namespace KuaforApi.Controllers
             return Ok(new { message = "Kayıt başarılı 🎉" });
         }
 
-        // 📌 Giriş Yap (Login)
         [HttpPost("login")]
         public IActionResult Login([FromBody] LoginRequest request)
         {
             var user = _context.Users.FirstOrDefault(u => u.Email == request.Email);
+
             if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
-                return Unauthorized("E-posta veya şifre hatalı.");
+                return Unauthorized(new { message = "E-posta veya şifre hatalı." });
 
             var token = _authService.GenerateJwtToken(user);
 
             return Ok(new
             {
                 message = "Giriş başarılı!",
-                user = new { user.FullName, user.Email, user.Role },
-                token = token 
+                user = new
+                {
+                    user.FullName,
+                    user.Email,
+                    user.Role
+                },
+                token = token
             });
+        }
+
+        [HttpPost("forgot-password")]
+        public IActionResult ForgotPassword([FromBody] ForgotPasswordRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.Email))
+                return BadRequest(new { message = "E-posta zorunludur." });
+
+            var user = _context.Users.FirstOrDefault(u => u.Email == request.Email);
+
+            if (user == null)
+                return NotFound(new { message = "Bu e-posta ile kayıtlı kullanıcı bulunamadı." });
+
+            return Ok(new { message = "Şifre sıfırlama bağlantısı gönderildi (demo)." });
         }
     }
 
-    // 🔹 DTO (Data Transfer Objects)
     public class RegisterRequest
     {
         public string FullName { get; set; } = string.Empty;
@@ -88,5 +101,10 @@ namespace KuaforApi.Controllers
     {
         public string Email { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
+    }
+
+    public class ForgotPasswordRequest
+    {
+        public string Email { get; set; } = string.Empty;
     }
 }

@@ -12,7 +12,6 @@ class AuthService {
 
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
-  // 🔹 Login
   Future<String?> login(String email, String password) async {
     try {
       final response = await _dio.post(
@@ -41,7 +40,6 @@ class AuthService {
     }
   }
 
-  // 🔹 Kayıt isteği
   Future<bool> register({
     required String fullName,
     required String email,
@@ -71,7 +69,35 @@ class AuthService {
     }
   }
 
-  // 🔹 Kullanıcı bilgisi
+  Future<String?> forgotPassword(String email) async {
+    try {
+      final response = await _dio.post(
+        '/Auth/forgot-password',
+        data: {
+          'email': email,
+        },
+      );
+
+      print('🔹 Forgot password response: ${response.data}');
+
+      if (response.statusCode == 200 && response.data['message'] != null) {
+        return response.data['message'].toString();
+      }
+
+      return 'İşlem tamamlandı.';
+    } on DioException catch (e) {
+      final data = e.response?.data;
+      if (data is Map && data['message'] != null) {
+        return data['message'].toString();
+      }
+      print('Forgot password Dio hatası: ${e.response?.data ?? e.message}');
+      return 'Bir hata oluştu.';
+    } catch (e) {
+      print('Forgot password genel hata: $e');
+      return 'Bir hata oluştu.';
+    }
+  }
+
   Future<Map<String, dynamic>?> getUserInfo(String token) async {
     try {
       final response = await _dio.get(
@@ -109,17 +135,44 @@ class AuthService {
     }
   }
 
-  // 🔹 Token kaydet
+  Future<bool> updateProfile({
+    required String token,
+    String? fullName,
+    String? password,
+  }) async {
+    try {
+      final response = await _dio.put(
+        '/Users/update',
+        data: {
+          'fullName': fullName,
+          'password': password,
+        },
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+          },
+        ),
+      );
+
+      print('🔹 Update profile response: ${response.data}');
+      return response.statusCode == 200;
+    } on DioException catch (e) {
+      print('Update profile Dio hatası: ${e.response?.data ?? e.message}');
+      return false;
+    } catch (e) {
+      print('Update profile genel hata: $e');
+      return false;
+    }
+  }
+
   Future<void> saveToken(String token) async {
     await _storage.write(key: 'jwt_token', value: token);
   }
 
-  // 🔹 Token oku
   Future<String?> getToken() async {
     return await _storage.read(key: 'jwt_token');
   }
 
-  // 🔹 Token sil
   Future<void> deleteToken() async {
     await _storage.delete(key: 'jwt_token');
   }

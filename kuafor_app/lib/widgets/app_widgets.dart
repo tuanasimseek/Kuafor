@@ -5,43 +5,83 @@ import 'package:flutter/material.dart';
 // ══════════════════════════════════════════════════════════════
 class AppColors {
   static const background = Color(0xFFF5F9FF);
-  static const surface    = Color(0xFFFFFFFF);
-  static const primary    = Color(0xFF0F172A); // koyu lacivert
-  static const accent     = Color(0xFF3B82F6); // canlı mavi
-  static const muted      = Color(0xFF6B7280);
-  static const border     = Color(0xFFE5E7EB);
-  static const white      = Color(0xFFFFFFFF);
+  static const surface = Color(0xFFFFFFFF);
+  static const primary = Color(0xFF0F172A); // koyu lacivert
+  static const accent = Color(0xFF3B82F6); // canlı mavi
+  static const muted = Color(0xFF6B7280);
+  static const border = Color(0xFFE5E7EB);
+  static const white = Color(0xFFFFFFFF);
 }
+
 // ══════════════════════════════════════════════════════════════
 //  ÜST GÖRSEL ALAN
 // ══════════════════════════════════════════════════════════════
 class TopVisual extends StatelessWidget {
   final String headline;
   final String subtitle;
-  const TopVisual({super.key, required this.headline, required this.subtitle});
+
+  const TopVisual({
+    super.key,
+    required this.headline,
+    required this.subtitle,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return SizedBox(
       width: double.infinity,
       height: 240,
-      color: AppColors.primary,
       child: Stack(
+        fit: StackFit.expand,
         children: [
+          Image.asset(
+            'assets/images/test.jpg',
+            fit: BoxFit.cover,
+          ),
+
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.black.withOpacity(0.35),
+                  Colors.black.withOpacity(0.55),
+                  AppColors.primary.withOpacity(0.92),
+                ],
+              ),
+            ),
+          ),
+
           Positioned(
-            top: -50, right: -50,
-            child: DecorCircle(size: 180, color: const Color(0xFF1A1A1A)),
+            top: -50,
+            right: -50,
+            child: DecorCircle(
+              size: 180,
+              color: Colors.black.withOpacity(0.18),
+            ),
           ),
           Positioned(
-            bottom: -20, left: 20,
-            child: DecorCircle(size: 90, color: const Color(0xFF181818)),
+            bottom: -20,
+            left: 20,
+            child: DecorCircle(
+              size: 90,
+              color: Colors.black.withOpacity(0.14),
+            ),
           ),
           Positioned(
-            top: 40, right: 60,
-            child: DecorCircle(size: 60, color: const Color(0xFF1C1C1C)),
+            top: 40,
+            right: 60,
+            child: DecorCircle(
+              size: 60,
+              color: Colors.black.withOpacity(0.10),
+            ),
           ),
+
           Positioned(
-            top: 52, left: 0, right: 0,
+            top: 52,
+            left: 0,
+            right: 0,
             child: Column(
               children: [
                 Container(
@@ -51,11 +91,15 @@ class TopVisual extends StatelessWidget {
                     color: Colors.white.withOpacity(0.07),
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                        color: Colors.white.withOpacity(0.12)),
+                      color: Colors.white.withOpacity(0.12),
+                    ),
                   ),
                   child: const Center(
-                    child: Icon(Icons.content_cut_rounded,
-                        color: AppColors.accent, size: 20),
+                    child: Icon(
+                      Icons.content_cut_rounded,
+                      color: AppColors.accent,
+                      size: 20,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -71,8 +115,11 @@ class TopVisual extends StatelessWidget {
               ],
             ),
           ),
+
           Positioned(
-            bottom: 24, left: 24, right: 24,
+            bottom: 24,
+            left: 24,
+            right: 24,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -89,7 +136,7 @@ class TopVisual extends StatelessWidget {
                 Text(
                   subtitle,
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.45),
+                    color: Colors.white.withOpacity(0.65),
                     fontSize: 12,
                   ),
                 ),
@@ -105,14 +152,22 @@ class TopVisual extends StatelessWidget {
 class DecorCircle extends StatelessWidget {
   final double size;
   final Color color;
-  const DecorCircle({super.key, required this.size, required this.color});
+
+  const DecorCircle({
+    super.key,
+    required this.size,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: size,
       height: size,
-      decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: color,
+      ),
     );
   }
 }
@@ -123,7 +178,12 @@ class DecorCircle extends StatelessWidget {
 class SegmentBar extends StatelessWidget {
   final int selected;
   final ValueChanged<int> onTap;
-  const SegmentBar({super.key, required this.selected, required this.onTap});
+
+  const SegmentBar({
+    super.key,
+    required this.selected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -136,13 +196,15 @@ class SegmentBar extends StatelessWidget {
       child: Row(
         children: [
           SegItem(
-              label: 'Giriş yap',
-              active: selected == 0,
-              onTap: () => onTap(0)),
+            label: 'Giriş yap',
+            active: selected == 0,
+            onTap: () => onTap(0),
+          ),
           SegItem(
-              label: 'Kayıt ol',
-              active: selected == 1,
-              onTap: () => onTap(1)),
+            label: 'Kayıt ol',
+            active: selected == 1,
+            onTap: () => onTap(1),
+          ),
         ],
       ),
     );
@@ -153,11 +215,13 @@ class SegItem extends StatelessWidget {
   final String label;
   final bool active;
   final VoidCallback onTap;
-  const SegItem(
-      {super.key,
-        required this.label,
-        required this.active,
-        required this.onTap});
+
+  const SegItem({
+    super.key,
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -192,7 +256,11 @@ class SegItem extends StatelessWidget {
 // ══════════════════════════════════════════════════════════════
 class FieldLabel extends StatelessWidget {
   final String text;
-  const FieldLabel({super.key, required this.text});
+
+  const FieldLabel({
+    super.key,
+    required this.text,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -236,12 +304,17 @@ class AppTextField extends StatelessWidget {
       style: const TextStyle(fontSize: 14, color: AppColors.primary),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: const TextStyle(color: AppColors.muted, fontSize: 14),
+        hintStyle: const TextStyle(
+          color: AppColors.muted,
+          fontSize: 14,
+        ),
         suffixIcon: suffix,
         filled: true,
         fillColor: AppColors.surface,
-        contentPadding:
-        const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 13,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(11),
           borderSide: BorderSide.none,
@@ -252,8 +325,10 @@ class AppTextField extends StatelessWidget {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(11),
-          borderSide:
-          const BorderSide(color: AppColors.primary, width: 1.5),
+          borderSide: const BorderSide(
+            color: AppColors.primary,
+            width: 1.5,
+          ),
         ),
       ),
     );
@@ -267,8 +342,13 @@ class PrimaryButton extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
   final Color? color;
-  const PrimaryButton(
-      {super.key, required this.label, required this.onTap, this.color});
+
+  const PrimaryButton({
+    super.key,
+    required this.label,
+    required this.onTap,
+    this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -308,13 +388,28 @@ class OrDivider extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Expanded(child: Container(height: 0.5, color: AppColors.border)),
+        Expanded(
+          child: Container(
+            height: 0.5,
+            color: AppColors.border,
+          ),
+        ),
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: 10),
-          child: Text('veya',
-              style: TextStyle(fontSize: 11, color: AppColors.muted)),
+          child: Text(
+            'veya',
+            style: TextStyle(
+              fontSize: 11,
+              color: AppColors.muted,
+            ),
+          ),
         ),
-        Expanded(child: Container(height: 0.5, color: AppColors.border)),
+        Expanded(
+          child: Container(
+            height: 0.5,
+            color: AppColors.border,
+          ),
+        ),
       ],
     );
   }
@@ -325,7 +420,11 @@ class OrDivider extends StatelessWidget {
 // ══════════════════════════════════════════════════════════════
 class GoogleButton extends StatelessWidget {
   final VoidCallback? onTap;
-  const GoogleButton({super.key, this.onTap});
+
+  const GoogleButton({
+    super.key,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -333,20 +432,25 @@ class GoogleButton extends StatelessWidget {
       width: double.infinity,
       child: OutlinedButton.icon(
         onPressed: onTap ?? () {},
-        icon: const Icon(Icons.g_mobiledata_rounded,
-            size: 22, color: AppColors.primary),
+        icon: const Icon(
+          Icons.g_mobiledata_rounded,
+          size: 22,
+          color: AppColors.primary,
+        ),
         label: const Text(
           'Google ile devam et',
           style: TextStyle(
-              fontSize: 13,
-              color: AppColors.primary,
-              fontWeight: FontWeight.w500),
+            fontSize: 13,
+            color: AppColors.primary,
+            fontWeight: FontWeight.w500,
+          ),
         ),
         style: OutlinedButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 12),
           side: const BorderSide(color: AppColors.border),
           shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(11)),
+            borderRadius: BorderRadius.circular(11),
+          ),
           backgroundColor: AppColors.white,
         ),
       ),
@@ -359,7 +463,11 @@ class GoogleButton extends StatelessWidget {
 // ══════════════════════════════════════════════════════════════
 class ErrorBanner extends StatelessWidget {
   final String message;
-  const ErrorBanner({super.key, required this.message});
+
+  const ErrorBanner({
+    super.key,
+    required this.message,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -373,7 +481,10 @@ class ErrorBanner extends StatelessWidget {
       ),
       child: Text(
         message,
-        style: const TextStyle(fontSize: 13, color: Color(0xFFA32D2D)),
+        style: const TextStyle(
+          fontSize: 13,
+          color: Color(0xFFA32D2D),
+        ),
       ),
     );
   }

@@ -6,6 +6,7 @@ import 'stylist_home_page.dart';
 import 'salon_owner_home_page.dart';
 import 'admin_dashboard.dart';
 import 'register_page.dart';
+import 'forgot_password_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -15,17 +16,16 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final _emailController    = TextEditingController();
+  final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final AuthService _authService = AuthService();
 
-  bool _isLoading   = false;
+  bool _isLoading = false;
   bool _obscurePass = true;
   String? _errorMessage;
 
-  // ── Orijinal login logic — dokunulmadı ────────────────────
   Future<void> _login() async {
-    final email    = _emailController.text.trim();
+    final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
     if (email.isEmpty || password.isEmpty) {
@@ -33,7 +33,10 @@ class _LoginPageState extends State<LoginPage> {
       return;
     }
 
-    setState(() { _isLoading = true; _errorMessage = null; });
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
 
     final token = await _authService.login(email, password);
     if (!mounted) return;
@@ -52,17 +55,25 @@ class _LoginPageState extends State<LoginPage> {
         );
 
         if (role == 'Customer') {
-          Navigator.pushReplacement(context,
-              MaterialPageRoute(builder: (_) => const CustomerHomePage()));
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const CustomerHomePage()),
+          );
         } else if (role == 'Hairdresser') {
-          Navigator.pushReplacement(context,
-              MaterialPageRoute(builder: (_) => const StylistHomePage()));
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const StylistHomePage()),
+          );
         } else if (role == 'SalonOwner') {
-          Navigator.pushReplacement(context,
-              MaterialPageRoute(builder: (_) => const SalonOwnerHomePage()));
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const SalonOwnerHomePage()),
+          );
         } else if (role == 'Admin') {
-          Navigator.pushReplacement(context,
-              MaterialPageRoute(builder: (_) => const AdminDashboard()));
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const AdminDashboard()),
+          );
         } else {
           setState(() => _errorMessage = "Rol bilgisi tanınmadı.");
         }
@@ -76,7 +87,6 @@ class _LoginPageState extends State<LoginPage> {
       });
     }
   }
-  // ──────────────────────────────────────────────────────────
 
   @override
   void dispose() {
@@ -110,9 +120,10 @@ class _LoginPageState extends State<LoginPage> {
                       selected: 0,
                       onTap: (i) {
                         if (i == 1) {
-                          Navigator.pushReplacement(context,
-                              MaterialPageRoute(
-                                  builder: (_) => const RegisterPage()));
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(builder: (_) => const RegisterPage()),
+                          );
                         }
                       },
                     ),
@@ -134,8 +145,9 @@ class _LoginPageState extends State<LoginPage> {
                       hint: '••••••••',
                       obscureText: _obscurePass,
                       suffix: GestureDetector(
-                        onTap: () =>
-                            setState(() => _obscurePass = !_obscurePass),
+                        onTap: () {
+                          setState(() => _obscurePass = !_obscurePass);
+                        },
                         child: Icon(
                           _obscurePass
                               ? Icons.visibility_outlined
@@ -150,7 +162,14 @@ class _LoginPageState extends State<LoginPage> {
                     Align(
                       alignment: Alignment.centerRight,
                       child: GestureDetector(
-                        onTap: () {},
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const ForgotPasswordPage(),
+                            ),
+                          );
+                        },
                         child: const Text(
                           'Şifremi unuttum',
                           style: TextStyle(
@@ -189,14 +208,17 @@ class _LoginPageState extends State<LoginPage> {
 
                     Center(
                       child: GestureDetector(
-                        onTap: () => Navigator.pushReplacement(context,
-                            MaterialPageRoute(
-                                builder: (_) => const RegisterPage())),
+                        onTap: () => Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(builder: (_) => const RegisterPage()),
+                        ),
                         child: RichText(
                           text: const TextSpan(
                             text: 'Hesabın yok mu?  ',
                             style: TextStyle(
-                                fontSize: 13, color: AppColors.muted),
+                              fontSize: 13,
+                              color: AppColors.muted,
+                            ),
                             children: [
                               TextSpan(
                                 text: 'Kaydol',

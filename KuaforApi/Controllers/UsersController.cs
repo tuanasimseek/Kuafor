@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using KuaforApi.Data; // DbContext için
-using System.Linq;
+using KuaforApi.Data;
+using BCrypt.Net;
 
 namespace KuaforApi.Controllers
 {
@@ -22,19 +22,58 @@ namespace KuaforApi.Controllers
         {
             var email = User?.Identity?.Name;
             if (string.IsNullOrEmpty(email))
-                return Unauthorized(new { Message = "Token geçersiz." });
+                return Unauthorized(new { message = "Token geçersiz." });
 
             var user = _context.Users.FirstOrDefault(u => u.Email == email);
             if (user == null)
-                return NotFound(new { Message = "Kullanıcı bulunamadı." });
+                return NotFound(new { message = "Kullanıcı bulunamadı." });
 
             return Ok(new
             {
-                Id = user.Id,
-                FullName = user.FullName,
-                Email = user.Email,
-                Role = user.Role
+                id = user.Id,
+                fullName = user.FullName,
+                email = user.Email,
+                role = user.Role
             });
         }
+
+        [Authorize]
+        [HttpPut("update")]
+        public IActionResult UpdateProfile([FromBody] UpdateUserRequest request)
+        {
+            var email = User?.Identity?.Name;
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized(new { message = "Token geçersiz." });
+
+            var user = _context.Users.FirstOrDefault(u => u.Email == email);
+            if (user == null)
+                return NotFound(new { message = "Kullanıcı bulunamadı." });
+
+            if (!string.IsNullOrWhiteSpace(request.FullName))
+                user.FullName = request.FullName.Trim();
+
+            if (!string.IsNullOrWhiteSpace(request.Password))
+                user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
+
+            _context.SaveChanges();
+
+            return Ok(new
+            {
+                message = "Profil güncellendi.",
+                user = new
+                {
+                    id = user.Id,
+                    fullName = user.FullName,
+                    email = user.Email,
+                    role = user.Role
+                }
+            });
+        }
+    }
+
+    public class UpdateUserRequest
+    {
+        public string? FullName { get; set; }
+        public string? Password { get; set; }
     }
 }
