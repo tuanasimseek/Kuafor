@@ -167,7 +167,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         obscure1
                             ? Icons.visibility_outlined
                             : Icons.visibility_off_outlined,
-                        color: const Color(0xFF7B7B86),
+                        color: AppColors.muted,
                       ),
                       onPressed: () {
                         setLocalState(() {
@@ -187,7 +187,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         obscure2
                             ? Icons.visibility_outlined
                             : Icons.visibility_off_outlined,
-                        color: const Color(0xFF7B7B86),
+                        color: AppColors.muted,
                       ),
                       onPressed: () {
                         setLocalState(() {
@@ -290,11 +290,11 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F6F4),
+      backgroundColor: AppColors.background,
       body: _isLoading
           ? const Center(
         child: CircularProgressIndicator(
-          color: Color(0xFF111111),
+          color: AppColors.mainDark,
           strokeWidth: 2,
         ),
       )
@@ -324,8 +324,8 @@ class _ProfilePageState extends State<ProfilePage> {
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF111111),
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primary,
                         ),
                       ),
                     ),
@@ -344,8 +344,15 @@ class _ProfilePageState extends State<ProfilePage> {
               margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: const Color(0xFF111111),
+                color: AppColors.mainDark,
                 borderRadius: BorderRadius.circular(22),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.10),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
               ),
               child: Row(
                 children: [
@@ -353,10 +360,10 @@ class _ProfilePageState extends State<ProfilePage> {
                     width: 66,
                     height: 66,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF2A2A2A),
+                      color: Colors.white.withOpacity(0.08),
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: const Color(0xFF333333),
+                        color: Colors.white.withOpacity(0.08),
                         width: 2,
                       ),
                     ),
@@ -381,30 +388,31 @@ class _ProfilePageState extends State<ProfilePage> {
                           name.isNotEmpty ? name : 'Kullanıcı',
                           style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 17,
-                            fontWeight: FontWeight.w600,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
                             letterSpacing: -0.3,
                           ),
                         ),
                         const SizedBox(height: 3),
                         Text(
                           email.isNotEmpty ? email : '-',
-                          style: const TextStyle(
-                            color: Color(0xFF777777),
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.62),
                             fontSize: 12,
                           ),
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 10),
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 10,
-                            vertical: 4,
+                            vertical: 5,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF1E1E1E),
+                            color: AppColors.accent.withOpacity(0.10),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: const Color(0xFF2A2A2A),
+                              color:
+                              AppColors.accent.withOpacity(0.28),
                             ),
                           ),
                           child: Text(
@@ -412,7 +420,7 @@ class _ProfilePageState extends State<ProfilePage> {
                             style: const TextStyle(
                               color: AppColors.accent,
                               fontSize: 11,
-                              fontWeight: FontWeight.w600,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
                         ),
@@ -534,11 +542,19 @@ class _ProfilePageState extends State<ProfilePage> {
                   : GestureDetector(
                 onTap: _logout,
                 child: Container(
-                  padding:
-                  const EdgeInsets.symmetric(vertical: 15),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 15,
+                  ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF111111),
-                    borderRadius: BorderRadius.circular(14),
+                    color: AppColors.mainDark,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.10),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -554,7 +570,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         style: TextStyle(
                           color: AppColors.accent,
                           fontSize: 15,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ],
@@ -591,7 +607,7 @@ class _EditBottomSheet extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
         decoration: const BoxDecoration(
-          color: Color(0xFFF7F6F4),
+          color: AppColors.background,
           borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
         ),
         child: SafeArea(
@@ -605,7 +621,7 @@ class _EditBottomSheet extends StatelessWidget {
                   width: 42,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFD7D3CD),
+                    color: AppColors.border,
                     borderRadius: BorderRadius.circular(99),
                   ),
                 ),
@@ -616,7 +632,7 @@ class _EditBottomSheet extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF111111),
+                  color: AppColors.primary,
                 ),
               ),
               const SizedBox(height: 4),
@@ -624,7 +640,7 @@ class _EditBottomSheet extends StatelessWidget {
                 subtitle,
                 style: const TextStyle(
                   fontSize: 13,
-                  color: Color(0xFF7B7B86),
+                  color: AppColors.muted,
                 ),
               ),
               const SizedBox(height: 18),
@@ -637,16 +653,16 @@ class _EditBottomSheet extends StatelessWidget {
                       onPressed: () => Navigator.pop(context),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                        side: const BorderSide(color: Color(0xFFE2DED8)),
+                        side: const BorderSide(color: AppColors.border),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
-                        backgroundColor: Colors.white,
+                        backgroundColor: AppColors.surface,
                       ),
                       child: const Text(
                         'İptal',
                         style: TextStyle(
-                          color: Color(0xFF111111),
+                          color: AppColors.primary,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -658,8 +674,8 @@ class _EditBottomSheet extends StatelessWidget {
                       onPressed: onSave,
                       style: ElevatedButton.styleFrom(
                         elevation: 0,
-                        backgroundColor: const Color(0xFF111111),
-                        foregroundColor: Colors.white,
+                        backgroundColor: AppColors.mainDark,
+                        foregroundColor: AppColors.white,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
@@ -700,17 +716,17 @@ class _SheetTextField extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2DED8)),
+        border: Border.all(color: AppColors.border),
       ),
       child: TextField(
         controller: controller,
         obscureText: obscureText,
         decoration: InputDecoration(
           hintText: hintText,
-          hintStyle: const TextStyle(color: Color(0xFF9A948C)),
-          prefixIcon: Icon(icon, color: const Color(0xFF7B7B86)),
+          hintStyle: const TextStyle(color: AppColors.muted),
+          prefixIcon: Icon(icon, color: AppColors.muted),
           suffixIcon: suffix,
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(
@@ -737,16 +753,17 @@ class _IconBtn extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 34,
-        height: 34,
+        width: 38,
+        height: 38,
         decoration: BoxDecoration(
-          color: const Color(0xFFEDEAE4),
-          borderRadius: BorderRadius.circular(10),
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.border),
         ),
         child: Icon(
           icon,
-          size: 16,
-          color: const Color(0xFF111111),
+          size: 17,
+          color: AppColors.primary,
         ),
       ),
     );
@@ -768,9 +785,9 @@ class _StatCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFEDEAE4)),
+          border: Border.all(color: AppColors.border),
         ),
         child: Column(
           children: [
@@ -779,7 +796,7 @@ class _StatCard extends StatelessWidget {
               style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF111111),
+                color: AppColors.primary,
               ),
             ),
             const SizedBox(height: 2),
@@ -787,7 +804,7 @@ class _StatCard extends StatelessWidget {
               label,
               style: const TextStyle(
                 fontSize: 10,
-                color: Color(0xFFBBBBBB),
+                color: AppColors.muted,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -818,17 +835,17 @@ class _Section extends StatelessWidget {
             title.toUpperCase(),
             style: const TextStyle(
               fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFFBBBBBB),
+              fontWeight: FontWeight.w700,
+              color: AppColors.muted,
               letterSpacing: 0.8,
             ),
           ),
           const SizedBox(height: 10),
           Container(
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColors.surface,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFEDEAE4)),
+              border: Border.all(color: AppColors.border),
             ),
             child: child,
           ),
@@ -866,24 +883,24 @@ class _InfoRow extends StatelessWidget {
               ? null
               : const Border(
             bottom: BorderSide(
-              color: Color(0xFFF3F1EE),
-              width: 0.5,
+              color: Color(0xFFF1F1F1),
+              width: 0.6,
             ),
           ),
         ),
         child: Row(
           children: [
             Container(
-              width: 32,
-              height: 32,
+              width: 36,
+              height: 36,
               decoration: BoxDecoration(
-                color: const Color(0xFFF7F6F4),
-                borderRadius: BorderRadius.circular(9),
+                color: AppColors.surfaceSoft,
+                borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
                 icon,
-                size: 15,
-                color: const Color(0xFF555555),
+                size: 17,
+                color: AppColors.primary,
               ),
             ),
             const SizedBox(width: 12),
@@ -895,17 +912,17 @@ class _InfoRow extends StatelessWidget {
                     label,
                     style: const TextStyle(
                       fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: Color(0xFF111111),
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primary,
                     ),
                   ),
                   if (value != null) ...[
-                    const SizedBox(height: 1),
+                    const SizedBox(height: 2),
                     Text(
                       value!,
                       style: const TextStyle(
                         fontSize: 11,
-                        color: Color(0xFFBBBBBB),
+                        color: AppColors.muted,
                       ),
                     ),
                   ],
@@ -916,7 +933,7 @@ class _InfoRow extends StatelessWidget {
               const Icon(
                 Icons.chevron_right_rounded,
                 size: 18,
-                color: Color(0xFFCCCCCC),
+                color: AppColors.muted,
               ),
           ],
         ),
@@ -951,24 +968,24 @@ class _ToggleRow extends StatelessWidget {
             ? null
             : const Border(
           bottom: BorderSide(
-            color: Color(0xFFF3F1EE),
-            width: 0.5,
+            color: Color(0xFFF1F1F1),
+            width: 0.6,
           ),
         ),
       ),
       child: Row(
         children: [
           Container(
-            width: 32,
-            height: 32,
+            width: 36,
+            height: 36,
             decoration: BoxDecoration(
-              color: const Color(0xFFF7F6F4),
-              borderRadius: BorderRadius.circular(9),
+              color: AppColors.surfaceSoft,
+              borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(
               icon,
-              size: 15,
-              color: const Color(0xFF555555),
+              size: 17,
+              color: AppColors.primary,
             ),
           ),
           const SizedBox(width: 12),
@@ -980,16 +997,16 @@ class _ToggleRow extends StatelessWidget {
                   label,
                   style: const TextStyle(
                     fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: Color(0xFF111111),
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.primary,
                   ),
                 ),
-                const SizedBox(height: 1),
+                const SizedBox(height: 2),
                 Text(
                   subtitle,
                   style: const TextStyle(
                     fontSize: 11,
-                    color: Color(0xFFBBBBBB),
+                    color: AppColors.muted,
                   ),
                 ),
               ],
@@ -999,9 +1016,9 @@ class _ToggleRow extends StatelessWidget {
             value: value,
             onChanged: onChanged,
             activeColor: Colors.white,
-            activeTrackColor: const Color(0xFF111111),
+            activeTrackColor: AppColors.mainDark,
             inactiveThumbColor: Colors.white,
-            inactiveTrackColor: const Color(0xFFEDEAE4),
+            inactiveTrackColor: AppColors.border,
             trackOutlineColor: WidgetStateProperty.all(Colors.transparent),
           ),
         ],

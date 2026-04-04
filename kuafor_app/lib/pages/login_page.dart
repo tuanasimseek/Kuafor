@@ -16,16 +16,17 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final _emailController = TextEditingController();
+  final _emailController    = TextEditingController();
   final _passwordController = TextEditingController();
   final AuthService _authService = AuthService();
 
-  bool _isLoading = false;
+  bool _isLoading   = false;
   bool _obscurePass = true;
   String? _errorMessage;
 
+  // ── Orijinal login logic — dokunulmadı ────────────────────
   Future<void> _login() async {
-    final email = _emailController.text.trim();
+    final email    = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
     if (email.isEmpty || password.isEmpty) {
@@ -33,10 +34,7 @@ class _LoginPageState extends State<LoginPage> {
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+    setState(() { _isLoading = true; _errorMessage = null; });
 
     final token = await _authService.login(email, password);
     if (!mounted) return;
@@ -44,38 +42,21 @@ class _LoginPageState extends State<LoginPage> {
     if (token != null && token.isNotEmpty) {
       final user = await _authService.getUserInfo(token);
       if (!mounted) return;
-
       setState(() => _isLoading = false);
 
       if (user != null) {
         final role = user['role'];
-
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Giriş başarılı 🎉")),
+          const SnackBar(content: Text("Giriş başarılı.")),
         );
-
         if (role == 'Customer') {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => const CustomerHomePage()),
-          );
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const CustomerHomePage()));
         } else if (role == 'Hairdresser') {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => const StylistHomePage()),
-          );
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const StylistHomePage()));
         } else if (role == 'SalonOwner') {
-
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => const SalonOwnerHomePage()),
-          );
-
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const SalonOwnerHomePage()));
         } else if (role == 'Admin') {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => const AdminDashboard()),
-          );
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AdminDashboard()));
         } else {
           setState(() => _errorMessage = "Rol bilgisi tanınmadı.");
         }
@@ -83,12 +64,10 @@ class _LoginPageState extends State<LoginPage> {
         setState(() => _errorMessage = "Kullanıcı bilgisi alınamadı.");
       }
     } else {
-      setState(() {
-        _isLoading = false;
-        _errorMessage = "E-posta veya şifre hatalı.";
-      });
+      setState(() { _isLoading = false; _errorMessage = "E-posta veya şifre hatalı."; });
     }
   }
+  // ──────────────────────────────────────────────────────────
 
   @override
   void dispose() {
@@ -103,10 +82,14 @@ class _LoginPageState extends State<LoginPage> {
       backgroundColor: AppColors.background,
       body: Column(
         children: [
+          // ── Fotoğraf + overlay ────────────────────────────
           TopVisual(
             headline: 'Güzellik\nsizi bekliyor',
-            subtitle: 'Randevunuzu saniyeler içinde alın',
+            subtitle: 'Saniyeler içinde randevunuzu oluşturun',
+            tag: 'RANDEVU AL',
           ),
+
+          // ── Form sheet ────────────────────────────────────
           Expanded(
             child: Container(
               decoration: const BoxDecoration(
@@ -114,53 +97,54 @@ class _LoginPageState extends State<LoginPage> {
                 borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
               ),
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+                padding: const EdgeInsets.fromLTRB(22, 20, 22, 32),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Tabs
                     SegmentBar(
                       selected: 0,
                       onTap: (i) {
                         if (i == 1) {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(builder: (_) => const RegisterPage()),
-                          );
+                          Navigator.pushReplacement(context,
+                              MaterialPageRoute(builder: (_) => const RegisterPage()));
                         }
                       },
                     ),
                     const SizedBox(height: 20),
 
+                    // E-posta
                     const FieldLabel(text: 'E-posta'),
                     const SizedBox(height: 6),
                     AppTextField(
                       controller: _emailController,
                       hint: 'ornek@email.com',
                       keyboardType: TextInputType.emailAddress,
+                      prefix: const Icon(Icons.mail_outline_rounded,
+                          size: 18, color: AppColors.muted),
                     ),
                     const SizedBox(height: 14),
 
+                    // Şifre
                     const FieldLabel(text: 'Şifre'),
                     const SizedBox(height: 6),
                     AppTextField(
                       controller: _passwordController,
                       hint: '••••••••',
                       obscureText: _obscurePass,
+                      prefix: const Icon(Icons.lock_outline_rounded,
+                          size: 18, color: AppColors.muted),
                       suffix: GestureDetector(
-                        onTap: () {
-                          setState(() => _obscurePass = !_obscurePass);
-                        },
+                        onTap: () => setState(() => _obscurePass = !_obscurePass),
                         child: Icon(
-                          _obscurePass
-                              ? Icons.visibility_outlined
-                              : Icons.visibility_off_outlined,
-                          size: 18,
-                          color: AppColors.muted,
+                          _obscurePass ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                          size: 18, color: AppColors.muted,
                         ),
                       ),
                     ),
                     const SizedBox(height: 10),
 
+                    // Şifremi unuttum
                     Align(
                       alignment: Alignment.centerRight,
                       child: GestureDetector(
@@ -177,57 +161,46 @@ class _LoginPageState extends State<LoginPage> {
                           style: TextStyle(
                             fontSize: 12,
                             color: AppColors.muted,
-                            fontWeight: FontWeight.w500,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
                     ),
                     const SizedBox(height: 20),
 
+                    // Hata
                     if (_errorMessage != null) ...[
                       ErrorBanner(message: _errorMessage!),
                       const SizedBox(height: 14),
                     ],
 
+                    // Giriş butonu
                     _isLoading
-                        ? const Center(
-                      child: CircularProgressIndicator(
-                        color: AppColors.primary,
-                        strokeWidth: 2,
-                      ),
-                    )
-                        : PrimaryButton(
-                      label: 'Giriş yap',
-                      onTap: _login,
-                    ),
+                        ? const Center(child: CircularProgressIndicator(color: AppColors.accent, strokeWidth: 2))
+                        : PrimaryButton(label: 'Giriş yap', onTap: _login),
                     const SizedBox(height: 16),
 
+                    // Veya
                     const OrDivider(),
                     const SizedBox(height: 14),
 
-                    const GoogleButton(),
-                    const SizedBox(height: 20),
+                    // Sosyal butonlar
+                    const SocialButtons(),
+                    const SizedBox(height: 22),
 
+                    // Alt link
                     Center(
                       child: GestureDetector(
-                        onTap: () => Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(builder: (_) => const RegisterPage()),
-                        ),
+                        onTap: () => Navigator.pushReplacement(context,
+                            MaterialPageRoute(builder: (_) => const RegisterPage())),
                         child: RichText(
                           text: const TextSpan(
                             text: 'Hesabın yok mu?  ',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: AppColors.muted,
-                            ),
+                            style: TextStyle(fontSize: 13, color: AppColors.muted),
                             children: [
                               TextSpan(
-                                text: 'Kaydol',
-                                style: TextStyle(
-                                  color: AppColors.primary,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                                text: 'Hemen kaydol',
+                                style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700),
                               ),
                             ],
                           ),
