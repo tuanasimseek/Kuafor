@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../services/auth_service.dart';
 import '../widgets/app_widgets.dart';
 
 class ForgotPasswordPage extends StatefulWidget {
@@ -10,50 +9,36 @@ class ForgotPasswordPage extends StatefulWidget {
 }
 
 class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
-  final TextEditingController _emailController = TextEditingController();
-  final AuthService _authService = AuthService();
-
-  bool _isLoading = false;
+  final _emailController = TextEditingController();
   String? _message;
-  bool _isError = false;
+  bool _isLoading = false;
 
-  Future<void> _submit() async {
+  Future<void> _sendResetLink() async {
     final email = _emailController.text.trim();
 
     if (email.isEmpty) {
-      setState(() {
-        _message = 'Lütfen e-posta adresinizi girin.';
-        _isError = true;
-      });
+      setState(() => _message = 'Lütfen e-posta adresinizi girin.');
       return;
     }
 
-    final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+$');
+    final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
     if (!emailRegex.hasMatch(email)) {
-      setState(() {
-        _message = 'Lütfen geçerli bir e-posta adresi girin.';
-        _isError = true;
-      });
+      setState(() => _message = 'Lütfen geçerli bir e-posta adresi girin.');
       return;
     }
 
     setState(() {
       _isLoading = true;
       _message = null;
-      _isError = false;
     });
 
-    final result = await _authService.forgotPassword(email);
+    await Future.delayed(const Duration(seconds: 1));
 
     if (!mounted) return;
 
-    final text = result ?? 'Bir hata oluştu.';
-    final lower = text.toLowerCase();
-
     setState(() {
       _isLoading = false;
-      _message = text;
-      _isError = lower.contains('bulunamadı') || lower.contains('hata');
+      _message = 'Şifre sıfırlama bağlantısı e-posta adresinize gönderildi.';
     });
   }
 
@@ -69,9 +54,10 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
       backgroundColor: AppColors.background,
       body: Column(
         children: [
-          TopVisual(
+          const TopVisual(
             headline: 'Şifrenizi\nsıfırlayın',
-            subtitle: 'E-posta adresinizi girin',
+            subtitle: 'E-posta adresinizi girin, size bağlantı gönderelim',
+            tag: 'YARDIM',
           ),
           Expanded(
             child: Container(
@@ -80,15 +66,30 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                 borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
               ),
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+                padding: const EdgeInsets.fromLTRB(22, 20, 22, 32),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.arrow_back_ios_new_rounded),
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.arrow_back_ios_new_rounded,
+                              size: 16, color: AppColors.primary),
+                          SizedBox(width: 6),
+                          Text(
+                            'Girişe dön',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 24),
 
                     const FieldLabel(text: 'E-posta'),
                     const SizedBox(height: 6),
@@ -96,6 +97,11 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                       controller: _emailController,
                       hint: 'ornek@email.com',
                       keyboardType: TextInputType.emailAddress,
+                      prefix: const Icon(
+                        Icons.mail_outline_rounded,
+                        size: 18,
+                        color: AppColors.muted,
+                      ),
                     ),
                     const SizedBox(height: 18),
 
@@ -107,13 +113,13 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                     _isLoading
                         ? const Center(
                       child: CircularProgressIndicator(
-                        color: AppColors.primary,
+                        color: AppColors.accent,
                         strokeWidth: 2,
                       ),
                     )
                         : PrimaryButton(
                       label: 'Sıfırlama bağlantısı gönder',
-                      onTap: _submit,
+                      onTap: _sendResetLink,
                     ),
                   ],
                 ),

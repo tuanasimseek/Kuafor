@@ -11,33 +11,35 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage> {
-  final _nameController            = TextEditingController();
-  final _emailController           = TextEditingController();
-  final _passwordController        = TextEditingController();
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _salonNameController       = TextEditingController();
   final _salonAddressController    = TextEditingController();
 
   String _selectedRole = 'Müşteri';
-  final AuthService _authService   = AuthService();
+  final AuthService _authService = AuthService();
 
-  bool _isLoading      = false;
-  bool _obscurePass    = true;
+  bool _isLoading = false;
+  bool _obscurePass = true;
   bool _obscureConfirm = true;
   String? _message;
 
   bool get _isSalonOwner => _selectedRole == 'Salon Sahibi';
 
   Future<void> _register() async {
-    final fullName        = _nameController.text.trim();
-    final email           = _emailController.text.trim();
-    final password        = _passwordController.text.trim();
+    final fullName = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
     final confirmPassword = _confirmPasswordController.text.trim();
     final salonName       = _salonNameController.text.trim();
     final salonAddress    = _salonAddressController.text.trim();
 
-    if (fullName.isEmpty || email.isEmpty ||
-        password.isEmpty || confirmPassword.isEmpty) {
+    if (fullName.isEmpty ||
+        email.isEmpty ||
+        password.isEmpty ||
+        confirmPassword.isEmpty) {
       setState(() => _message = "Lütfen tüm alanları doldurun.");
       return;
     }
@@ -68,13 +70,16 @@ class _RegisterPageState extends State<RegisterPage> {
       return;
     }
 
-    setState(() { _isLoading = true; _message = null; });
+    setState(() {
+      _isLoading = true;
+      _message = null;
+    });
 
     final roleMap = {
-      'Müşteri':      'Customer',
-      'Kuaför':       'Hairdresser',
+      'Müşteri': 'Customer',
+      'Kuaför': 'Hairdresser',
       'Salon Sahibi': 'SalonOwner',
-      'Admin':        'Admin',
+      'Admin': 'Admin',
     };
 
     final success = await _authService.register(
@@ -91,10 +96,12 @@ class _RegisterPageState extends State<RegisterPage> {
 
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Kayıt başarılı 🎉")),
+        const SnackBar(content: Text("Kayıt başarılı.")),
       );
-      Navigator.pushReplacement(context,
-          MaterialPageRoute(builder: (_) => const LoginPage()));
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginPage()),
+      );
     } else {
       setState(() =>
           _message = "Kayıt başarısız. Bu e-posta zaten kayıtlı olabilir.");
@@ -118,9 +125,10 @@ class _RegisterPageState extends State<RegisterPage> {
       backgroundColor: AppColors.background,
       body: Column(
         children: [
-          TopVisual(
+          const TopVisual(
             headline: 'Aramıza\nkatılın',
-            subtitle: 'Ücretsiz hesap oluşturun',
+            subtitle: 'Ücretsiz hesabınızı dakikada oluşturun',
+            tag: 'ÜCRETSİZ',
           ),
           Expanded(
             child: Container(
@@ -129,7 +137,7 @@ class _RegisterPageState extends State<RegisterPage> {
                 borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
               ),
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+                padding: const EdgeInsets.fromLTRB(22, 20, 22, 32),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -137,21 +145,29 @@ class _RegisterPageState extends State<RegisterPage> {
                       selected: 1,
                       onTap: (i) {
                         if (i == 0) {
-                          Navigator.pushReplacement(context,
-                              MaterialPageRoute(
-                                  builder: (_) => const LoginPage()));
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const LoginPage(),
+                            ),
+                          );
                         }
                       },
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 20),
 
                     const FieldLabel(text: 'Ad Soyad'),
                     const SizedBox(height: 6),
                     AppTextField(
                       controller: _nameController,
                       hint: 'Adınız Soyadınız',
+                      prefix: const Icon(
+                        Icons.person_outline_rounded,
+                        size: 18,
+                        color: AppColors.muted,
+                      ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 13),
 
                     const FieldLabel(text: 'E-posta'),
                     const SizedBox(height: 6),
@@ -159,8 +175,13 @@ class _RegisterPageState extends State<RegisterPage> {
                       controller: _emailController,
                       hint: 'ornek@email.com',
                       keyboardType: TextInputType.emailAddress,
+                      prefix: const Icon(
+                        Icons.mail_outline_rounded,
+                        size: 18,
+                        color: AppColors.muted,
+                      ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 13),
 
                     const FieldLabel(text: 'Şifre'),
                     const SizedBox(height: 6),
@@ -168,6 +189,11 @@ class _RegisterPageState extends State<RegisterPage> {
                       controller: _passwordController,
                       hint: '••••••••',
                       obscureText: _obscurePass,
+                      prefix: const Icon(
+                        Icons.lock_outline_rounded,
+                        size: 18,
+                        color: AppColors.muted,
+                      ),
                       suffix: GestureDetector(
                         onTap: () =>
                             setState(() => _obscurePass = !_obscurePass),
@@ -180,7 +206,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 13),
 
                     const FieldLabel(text: 'Şifre Tekrar'),
                     const SizedBox(height: 6),
@@ -188,9 +214,15 @@ class _RegisterPageState extends State<RegisterPage> {
                       controller: _confirmPasswordController,
                       hint: '••••••••',
                       obscureText: _obscureConfirm,
+                      prefix: const Icon(
+                        Icons.lock_outline_rounded,
+                        size: 18,
+                        color: AppColors.muted,
+                      ),
                       suffix: GestureDetector(
                         onTap: () => setState(
-                                () => _obscureConfirm = !_obscureConfirm),
+                              () => _obscureConfirm = !_obscureConfirm,
+                        ),
                         child: Icon(
                           _obscureConfirm
                               ? Icons.visibility_outlined
@@ -200,7 +232,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 16),
 
                     const FieldLabel(text: 'Hesap Türü'),
                     const SizedBox(height: 8),
@@ -210,7 +242,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         'Müşteri',
                         'Kuaför',
                         'Salon Sahibi',
-                        'Admin'
+                        'Admin',
                       ],
                       onChanged: _isLoading
                           ? null
@@ -283,20 +315,25 @@ class _RegisterPageState extends State<RegisterPage> {
 
                     Center(
                       child: GestureDetector(
-                        onTap: () => Navigator.pushReplacement(context,
-                            MaterialPageRoute(
-                                builder: (_) => const LoginPage())),
+                        onTap: () => Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const LoginPage(),
+                          ),
+                        ),
                         child: RichText(
                           text: const TextSpan(
                             text: 'Zaten hesabın var mı?  ',
                             style: TextStyle(
-                                fontSize: 13, color: AppColors.muted),
+                              fontSize: 13,
+                              color: AppColors.muted,
+                            ),
                             children: [
                               TextSpan(
                                 text: 'Giriş yap',
                                 style: TextStyle(
                                   color: AppColors.primary,
-                                  fontWeight: FontWeight.w600,
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
                             ],
@@ -333,6 +370,7 @@ class _RoleChips extends StatelessWidget {
       runSpacing: 8,
       children: roles.map((role) {
         final isActive = role == selected;
+
         return GestureDetector(
           onTap: onChanged != null ? () => onChanged!(role) : null,
           child: AnimatedContainer(
@@ -340,17 +378,17 @@ class _RoleChips extends StatelessWidget {
             padding:
                 const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
             decoration: BoxDecoration(
-              color: isActive ? AppColors.primary : AppColors.surface,
+              color: isActive ? AppColors.mainDark : AppColors.surface,
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                color: isActive ? AppColors.primary : Colors.transparent,
+                color: isActive ? AppColors.mainDark : AppColors.border,
               ),
             ),
             child: Text(
               role,
               style: TextStyle(
                 fontSize: 13,
-                fontWeight: FontWeight.w500,
+                fontWeight: FontWeight.w600,
                 color: isActive ? AppColors.white : AppColors.muted,
               ),
             ),
