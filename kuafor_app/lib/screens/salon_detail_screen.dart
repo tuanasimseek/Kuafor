@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/salon_service.dart';
 import '../services/review_service.dart';
+import '../screens/booking_screen.dart';
 import '../widgets/app_widgets.dart';
 
 class SalonDetailScreen extends StatefulWidget {
@@ -138,8 +139,7 @@ class _SalonDetailScreenState extends State<SalonDetailScreen> {
                   );
                 }
                 final salon = snapshot.data;
-                final services =
-                    (salon?['services'] as List<dynamic>?) ?? [];
+                final services = (salon?['services'] as List<dynamic>?) ?? [];
 
                 return ListView(
                   padding: const EdgeInsets.all(16),
@@ -256,80 +256,125 @@ class _SalonDetailScreenState extends State<SalonDetailScreen> {
                           ),
                           padding: const EdgeInsets.symmetric(
                               horizontal: 16, vertical: 14),
-                          child: Row(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Container(
-                                width: 40,
-                                height: 40,
-                                decoration: BoxDecoration(
-                                  color:
-                                      AppColors.accent.withOpacity(0.08),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: const Icon(
-                                    Icons.content_cut_rounded,
-                                    size: 18,
-                                    color: AppColors.accent),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      service['name'] ?? '',
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w500,
-                                        color: AppColors.primary,
-                                      ),
+                              Row(
+                                children: [
+                                  Container(
+                                    width: 40,
+                                    height: 40,
+                                    decoration: BoxDecoration(
+                                      color:
+                                          AppColors.accent.withOpacity(0.08),
+                                      borderRadius: BorderRadius.circular(10),
                                     ),
-                                    const SizedBox(height: 2),
-                                    Row(
+                                    child: const Icon(
+                                        Icons.content_cut_rounded,
+                                        size: 18,
+                                        color: AppColors.accent),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
-                                        const Icon(
-                                            Icons.access_time_rounded,
-                                            size: 11,
-                                            color: AppColors.muted),
-                                        const SizedBox(width: 3),
                                         Text(
-                                          '${service['durationMinutes']} dk',
+                                          service['name'] ?? '',
                                           style: const TextStyle(
-                                              fontSize: 12,
-                                              color: AppColors.muted),
-                                        ),
-                                        // Kuaför adı varsa göster
-                                        if (stylistName != null &&
-                                            stylistName.isNotEmpty) ...[
-                                          const SizedBox(width: 8),
-                                          const Text('·',
-                                              style: TextStyle(
-                                                  color: AppColors.muted)),
-                                          const SizedBox(width: 8),
-                                          const Icon(
-                                              Icons.person_outline_rounded,
-                                              size: 11,
-                                              color: AppColors.muted),
-                                          const SizedBox(width: 3),
-                                          Text(
-                                            stylistName,
-                                            style: const TextStyle(
-                                                fontSize: 12,
-                                                color: AppColors.muted),
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w500,
+                                            color: AppColors.primary,
                                           ),
-                                        ],
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Row(
+                                          children: [
+                                            const Icon(
+                                                Icons.access_time_rounded,
+                                                size: 11,
+                                                color: AppColors.muted),
+                                            const SizedBox(width: 3),
+                                            Text(
+                                              '${service['durationMinutes']} dk',
+                                              style: const TextStyle(
+                                                  fontSize: 12,
+                                                  color: AppColors.muted),
+                                            ),
+                                            if (stylistName != null &&
+                                                stylistName.isNotEmpty) ...[
+                                              const SizedBox(width: 8),
+                                              const Text('·',
+                                                  style: TextStyle(
+                                                      color: AppColors.muted)),
+                                              const SizedBox(width: 8),
+                                              const Icon(
+                                                  Icons.person_outline_rounded,
+                                                  size: 11,
+                                                  color: AppColors.muted),
+                                              const SizedBox(width: 3),
+                                              Text(
+                                                stylistName,
+                                                style: const TextStyle(
+                                                    fontSize: 12,
+                                                    color: AppColors.muted),
+                                              ),
+                                            ],
+                                          ],
+                                        ),
                                       ],
                                     ),
-                                  ],
-                                ),
+                                  ),
+                                  Text(
+                                    '₺${service['price']}',
+                                    style: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
+                                ],
                               ),
-                              Text(
-                                '₺${service['price']}',
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.primary,
+                              // ← YENİ: Randevu Al butonu
+                              const SizedBox(height: 10),
+                              GestureDetector(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => BookingScreen(
+                                        customerId: widget.userId,
+                                        salonId: widget.salonId,
+                                        salonName: widget.salonName,
+                                        serviceId: service['id'] as int,
+                                        serviceName: service['name'] as String,
+                                        servicePrice: (service['price'] as num)
+                                            .toDouble(),
+                                        serviceDurationMinutes:
+                                            service['durationMinutes'] as int,
+                                      ),
+                                    ),
+                                  );
+                                },
+                                child: Container(
+                                  width: double.infinity,
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 10),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: const Center(
+                                    child: Text(
+                                      'Randevu Al',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
                                 ),
                               ),
                             ],

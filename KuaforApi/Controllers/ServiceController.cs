@@ -16,7 +16,6 @@ public class ServiceController : ControllerBase
         _context = context;
     }
 
-    // GET: api/service/salon/{salonId}
     [HttpGet("salon/{salonId}")]
     public async Task<IActionResult> GetSalonServices(int salonId)
     {
@@ -26,7 +25,6 @@ public class ServiceController : ControllerBase
         return Ok(services);
     }
 
-    // GET: api/service/stylist/{stylistId}
     [HttpGet("stylist/{stylistId}")]
     public async Task<IActionResult> GetStylistServices(int stylistId)
     {
@@ -36,16 +34,30 @@ public class ServiceController : ControllerBase
         return Ok(services);
     }
 
-    // POST: api/service
     [HttpPost]
     public async Task<IActionResult> CreateService([FromBody] Service service)
     {
-        // SalonId varsa salon kontrolü yap, yoksa stylist hizmeti olarak ekle
-        if (service.SalonId != null && service.SalonId != 0)
+        // SalonId geliyorsa ve geçerliyse salon kontrolü yap
+        if (service.SalonId.HasValue && service.SalonId.Value > 0)
         {
-            var salonExists = await _context.Salons.AnyAsync(s => s.Id == service.SalonId);
+            var salonExists = await _context.Salons.AnyAsync(s => s.Id == service.SalonId.Value);
             if (!salonExists)
                 return BadRequest(new { message = "Salon bulunamadı" });
+        }
+
+        // StylistId geliyorsa kullanıcı kontrolü yap
+        if (service.StylistId.HasValue && service.StylistId.Value > 0)
+        {
+            var userExists = await _context.Users.AnyAsync(u => u.Id == service.StylistId.Value);
+            if (!userExists)
+                return BadRequest(new { message = "Stilist bulunamadı" });
+        }
+
+        // En az biri zorunlu
+        if ((!service.SalonId.HasValue || service.SalonId.Value == 0) &&
+            (!service.StylistId.HasValue || service.StylistId.Value == 0))
+        {
+            return BadRequest(new { message = "SalonId veya StylistId zorunlu" });
         }
 
         _context.Services.Add(service);
@@ -53,13 +65,12 @@ public class ServiceController : ControllerBase
         return Ok(service);
     }
 
-    // PUT: api/service/{id}
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateService(int id, [FromBody] Service service)
     {
         var existing = await _context.Services.FindAsync(id);
         if (existing == null)
-            return NotFound();
+            return NotFound(new { message = "Hizmet bulunamadı" });
 
         existing.Name = service.Name;
         existing.Price = service.Price;
@@ -69,13 +80,12 @@ public class ServiceController : ControllerBase
         return NoContent();
     }
 
-    // DELETE: api/service/{id}
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteService(int id)
     {
         var service = await _context.Services.FindAsync(id);
         if (service == null)
-            return NotFound();
+            return NotFound(new { message = "Hizmet bulunamadı" });
 
         _context.Services.Remove(service);
         await _context.SaveChangesAsync();

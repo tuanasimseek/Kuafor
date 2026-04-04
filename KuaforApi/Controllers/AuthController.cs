@@ -23,30 +23,52 @@ namespace KuaforApi.Controllers
         {
             string normalizedRole = request.Role?.Trim() switch
             {
-                "Müşteri" => "Customer",
-                "Customer" => "Customer",
-
-                "Kuaför" => "Hairdresser",
-                "Hairdresser" => "Hairdresser",
-
+                "Müşteri"      => "Customer",
+                "Customer"     => "Customer",
+                "Kuaför"       => "Hairdresser",
+                "Hairdresser"  => "Hairdresser",
                 "Salon Sahibi" => "SalonOwner",
-                "SalonOwner" => "SalonOwner",
-
-                "Admin" => "Admin",
-
-                _ => "Customer"
+                "SalonOwner"   => "SalonOwner",
+                "Admin"        => "Admin",
+                _              => "Customer"
             };
 
             var user = new User
             {
                 FullName = request.FullName,
-                Email = request.Email,
-                Role = normalizedRole
+                Email    = request.Email,
+                Role     = normalizedRole
             };
 
             var success = _authService.Register(user, request.Password);
             if (!success)
                 return BadRequest(new { message = "Bu e-posta zaten kayıtlı." });
+
+            // Register sonrası user.Id hâlâ 0 olabilir,
+            // DB'den email ile çekip gerçek Id'yi alıyoruz
+            var savedUser = _context.Users.FirstOrDefault(u => u.Email == request.Email);
+            if (savedUser == null)
+                return StatusCode(500, new { message = "Kullanıcı kaydedilemedi." });
+
+            if (normalizedRole == "SalonOwner")
+            {
+                var salonName    = string.IsNullOrWhiteSpace(request.SalonName)
+                    ? $"{request.FullName} Salonu"
+                    : request.SalonName;
+                var salonAddress = string.IsNullOrWhiteSpace(request.SalonAddress)
+                    ? ""
+                    : request.SalonAddress;
+
+                var salon = new Salon
+                {
+                    Name        = salonName,
+                    Address     = salonAddress,
+                    Description = "",
+                    OwnerId     = savedUser.Id  // gerçek Id
+                };
+                _context.Salons.Add(salon);
+                _context.SaveChanges();
+            }
 
             return Ok(new { message = "Kayıt başarılı 🎉" });
         }
@@ -64,13 +86,8 @@ namespace KuaforApi.Controllers
             return Ok(new
             {
                 message = "Giriş başarılı!",
-                user = new
-                {
-                    user.FullName,
-                    user.Email,
-                    user.Role
-                },
-                token = token
+                user    = new { user.FullName, user.Email, user.Role },
+                token
             });
         }
 
@@ -81,7 +98,6 @@ namespace KuaforApi.Controllers
                 return BadRequest(new { message = "E-posta zorunludur." });
 
             var user = _context.Users.FirstOrDefault(u => u.Email == request.Email);
-
             if (user == null)
                 return NotFound(new { message = "Bu e-posta ile kayıtlı kullanıcı bulunamadı." });
 
@@ -91,15 +107,17 @@ namespace KuaforApi.Controllers
 
     public class RegisterRequest
     {
-        public string FullName { get; set; } = string.Empty;
-        public string Email { get; set; } = string.Empty;
-        public string Password { get; set; } = string.Empty;
-        public string Role { get; set; } = "Customer";
+        public string  FullName      { get; set; } = string.Empty;
+        public string  Email         { get; set; } = string.Empty;
+        public string  Password      { get; set; } = string.Empty;
+        public string  Role          { get; set; } = "Customer";
+        public string? SalonName     { get; set; }
+        public string? SalonAddress  { get; set; }
     }
 
     public class LoginRequest
     {
-        public string Email { get; set; } = string.Empty;
+        public string Email    { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
     }
 

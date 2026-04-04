@@ -1,0 +1,397 @@
+import 'package:flutter/material.dart';
+import '../services/appointment_service.dart';
+import '../widgets/app_widgets.dart';
+
+class SalonOwnerAppointmentsScreen extends StatefulWidget {
+  final int salonId;
+  const SalonOwnerAppointmentsScreen({super.key, required this.salonId});
+
+  @override
+  State<SalonOwnerAppointmentsScreen> createState() =>
+      _SalonOwnerAppointmentsScreenState();
+}
+
+class _SalonOwnerAppointmentsScreenState
+    extends State<SalonOwnerAppointmentsScreen> {
+  final AppointmentService _service = AppointmentService();
+  late Future<List<dynamic>> _future;
+  String _filter = 'Tümü';
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  void _load() {
+    setState(() {
+      _future = _service.getSalonAppointments(widget.salonId);
+    });
+  }
+
+  Future<void> _updateStatus(int id, String status) async {
+    final ok = await _service.updateStatus(id, status);
+    if (!mounted) return;
+    if (ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Durum: $status'),
+          backgroundColor: AppColors.primary,
+        ),
+      );
+      _load();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: Column(
+        children: [
+          Container(
+            color: AppColors.primary,
+            padding: EdgeInsets.only(
+              top: MediaQuery.of(context).padding.top + 16,
+              left: 24,
+              right: 24,
+              bottom: 24,
+            ),
+            child: Row(
+              children: [
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: const Icon(Icons.arrow_back_ios,
+                      color: Colors.white, size: 18),
+                ),
+                const SizedBox(width: 16),
+                const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'TÜM RANDEVULAR',
+                      style: TextStyle(
+                        color: AppColors.accent,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 2.5,
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      'Salon randevu yönetimi',
+                      style: TextStyle(
+                          color: AppColors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w500),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          // Filtre
+          Container(
+            color: AppColors.surface,
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: ['Tümü', 'Beklemede', 'Onaylandı', 'Tamamlandı', 'İptal Edildi']
+                    .map((f) {
+                  final active = _filter == f;
+                  return GestureDetector(
+                    onTap: () => setState(() => _filter = f),
+                    child: Container(
+                      margin: const EdgeInsets.only(right: 8),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 7),
+                      decoration: BoxDecoration(
+                        color:
+                            active ? AppColors.primary : AppColors.background,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                            color: active
+                                ? AppColors.primary
+                                : AppColors.border),
+                      ),
+                      child: Text(
+                        f,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: active
+                              ? FontWeight.w600
+                              : FontWeight.normal,
+                          color:
+                              active ? AppColors.white : AppColors.muted,
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+
+          Expanded(
+            child: FutureBuilder<List<dynamic>>(
+              future: _future,
+              builder: (context, snap) {
+                if (snap.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                      child:
+                          CircularProgressIndicator(color: AppColors.accent));
+                }
+
+                final all = snap.data ?? [];
+                final filtered = _filter == 'Tümü'
+                    ? all
+                    : all.where((a) => a['status'] == _filter).toList();
+
+                if (filtered.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 68,
+                          height: 68,
+                          decoration: BoxDecoration(
+                            color: AppColors.accent.withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                          child: const Icon(Icons.calendar_month_outlined,
+                              size: 34, color: AppColors.accent),
+                        ),
+                        const SizedBox(height: 16),
+                        const Text('Randevu bulunamadı',
+                            style: TextStyle(
+                                color: AppColors.primary,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                  );
+                }
+
+                return RefreshIndicator(
+                  onRefresh: () async => _load(),
+                  color: AppColors.accent,
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: filtered.length,
+                    itemBuilder: (context, i) {
+                      final a = filtered[i];
+                      final status =
+                          a['status'] as String? ?? 'Beklemede';
+                      return _OwnerAppointmentCard(
+                        appt: a,
+                        onApprove: status == 'Beklemede'
+                            ? () => _updateStatus(a['id'] as int, 'Onaylandı')
+                            : null,
+                        onCancel: (status == 'Beklemede' ||
+                                status == 'Onaylandı')
+                            ? () =>
+                                _updateStatus(a['id'] as int, 'İptal Edildi')
+                            : null,
+                        onComplete: status == 'Onaylandı'
+                            ? () =>
+                                _updateStatus(a['id'] as int, 'Tamamlandı')
+                            : null,
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OwnerAppointmentCard extends StatelessWidget {
+  final Map appt;
+  final VoidCallback? onApprove;
+  final VoidCallback? onCancel;
+  final VoidCallback? onComplete;
+
+  const _OwnerAppointmentCard({
+    required this.appt,
+    this.onApprove,
+    this.onCancel,
+    this.onComplete,
+  });
+
+  Color _statusColor(String status) {
+    switch (status) {
+      case 'Onaylandı':
+        return const Color(0xFF10B981);
+      case 'İptal Edildi':
+        return Colors.red;
+      case 'Tamamlandı':
+        return AppColors.accent;
+      default:
+        return Colors.orange;
+    }
+  }
+
+  String _formatDate(String raw) {
+    final dt = DateTime.parse(raw).toLocal();
+    return '${dt.day.toString().padLeft(2, '0')}.${dt.month.toString().padLeft(2, '0')}.${dt.year}  '
+        '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final status = appt['status'] as String? ?? 'Beklemede';
+    final hasActions =
+        onApprove != null || onCancel != null || onComplete != null;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            appt['customerName'] ?? 'Müşteri',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                          Text(
+                            '${appt['serviceName'] ?? ''} · ${appt['stylistName'] ?? ''}',
+                            style: const TextStyle(
+                                fontSize: 12, color: AppColors.muted),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: _statusColor(status).withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        status,
+                        style: TextStyle(
+                          color: _statusColor(status),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                const Divider(height: 1, color: AppColors.border),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    const Icon(Icons.access_time_rounded,
+                        size: 14, color: AppColors.muted),
+                    const SizedBox(width: 6),
+                    Text(
+                      _formatDate(appt['appointmentDate'] as String),
+                      style: const TextStyle(
+                          fontSize: 12, color: AppColors.muted),
+                    ),
+                    const Spacer(),
+                    Text(
+                      '${appt['durationMinutes']} dk · ₺${appt['servicePrice']}',
+                      style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w500),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          if (hasActions) ...[
+            const Divider(height: 1, color: AppColors.border),
+            Row(
+              children: [
+                if (onApprove != null)
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: onApprove,
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                        child: Center(
+                          child: Text('Onayla',
+                              style: TextStyle(
+                                  color: Color(0xFF10B981),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600)),
+                        ),
+                      ),
+                    ),
+                  ),
+                if (onApprove != null && (onCancel != null || onComplete != null))
+                  Container(width: 1, height: 40, color: AppColors.border),
+                if (onComplete != null)
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: onComplete,
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                        child: Center(
+                          child: Text('Tamamlandı',
+                              style: TextStyle(
+                                  color: AppColors.accent,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600)),
+                        ),
+                      ),
+                    ),
+                  ),
+                if (onComplete != null && onCancel != null)
+                  Container(width: 1, height: 40, color: AppColors.border),
+                if (onCancel != null)
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: onCancel,
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                        child: Center(
+                          child: Text('İptal Et',
+                              style: TextStyle(
+                                  color: Colors.red,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600)),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}

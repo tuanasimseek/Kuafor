@@ -15,6 +15,8 @@ class _RegisterPageState extends State<RegisterPage> {
   final _emailController           = TextEditingController();
   final _passwordController        = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  final _salonNameController       = TextEditingController();
+  final _salonAddressController    = TextEditingController();
 
   String _selectedRole = 'Müşteri';
   final AuthService _authService   = AuthService();
@@ -24,16 +26,29 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _obscureConfirm = true;
   String? _message;
 
-  // ── Orijinal register logic — dokunulmadı ─────────────────
+  bool get _isSalonOwner => _selectedRole == 'Salon Sahibi';
+
   Future<void> _register() async {
     final fullName        = _nameController.text.trim();
     final email           = _emailController.text.trim();
     final password        = _passwordController.text.trim();
     final confirmPassword = _confirmPasswordController.text.trim();
+    final salonName       = _salonNameController.text.trim();
+    final salonAddress    = _salonAddressController.text.trim();
 
     if (fullName.isEmpty || email.isEmpty ||
         password.isEmpty || confirmPassword.isEmpty) {
       setState(() => _message = "Lütfen tüm alanları doldurun.");
+      return;
+    }
+
+    if (_isSalonOwner && salonName.isEmpty) {
+      setState(() => _message = "Lütfen salon adını girin.");
+      return;
+    }
+
+    if (_isSalonOwner && salonAddress.isEmpty) {
+      setState(() => _message = "Lütfen salon adresini girin.");
       return;
     }
 
@@ -63,10 +78,12 @@ class _RegisterPageState extends State<RegisterPage> {
     };
 
     final success = await _authService.register(
-      fullName: fullName,
-      email:    email,
-      password: password,
-      role:     roleMap[_selectedRole]!,
+      fullName:     fullName,
+      email:        email,
+      password:     password,
+      role:         roleMap[_selectedRole]!,
+      salonName:    _isSalonOwner ? salonName    : null,
+      salonAddress: _isSalonOwner ? salonAddress : null,
     );
 
     if (!mounted) return;
@@ -80,10 +97,9 @@ class _RegisterPageState extends State<RegisterPage> {
           MaterialPageRoute(builder: (_) => const LoginPage()));
     } else {
       setState(() =>
-      _message = "Kayıt başarısız. Bu e-posta zaten kayıtlı olabilir.");
+          _message = "Kayıt başarısız. Bu e-posta zaten kayıtlı olabilir.");
     }
   }
-  // ──────────────────────────────────────────────────────────
 
   @override
   void dispose() {
@@ -91,6 +107,8 @@ class _RegisterPageState extends State<RegisterPage> {
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _salonNameController.dispose();
+    _salonAddressController.dispose();
     super.dispose();
   }
 
@@ -198,7 +216,51 @@ class _RegisterPageState extends State<RegisterPage> {
                           ? null
                           : (v) => setState(() => _selectedRole = v),
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 14),
+
+                    // Salon Sahibi seçilince belirir
+                    if (_isSalonOwner) ...[
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Row(
+                              children: [
+                                Icon(Icons.store_outlined,
+                                    size: 16, color: AppColors.accent),
+                                SizedBox(width: 6),
+                                Text(
+                                  'Salon Bilgileri',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.accent,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            AppTextField(
+                              controller: _salonNameController,
+                              hint: 'Salon adı (ör. Ahmet Kuaför)',
+                            ),
+                            const SizedBox(height: 10),
+                            AppTextField(
+                              controller: _salonAddressController,
+                              hint: 'Adres (ör. İstanbul, Kadıköy)',
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                    ],
 
                     if (_message != null) ...[
                       ErrorBanner(message: _message!),
@@ -207,16 +269,16 @@ class _RegisterPageState extends State<RegisterPage> {
 
                     _isLoading
                         ? const Center(
-                      child: CircularProgressIndicator(
-                        color: AppColors.accent,
-                        strokeWidth: 2,
-                      ),
-                    )
+                            child: CircularProgressIndicator(
+                              color: AppColors.accent,
+                              strokeWidth: 2,
+                            ),
+                          )
                         : PrimaryButton(
-                      label: 'Hesap oluştur',
-                      onTap: _register,
-                      color: AppColors.accent,
-                    ),
+                            label: 'Hesap oluştur',
+                            onTap: _register,
+                            color: AppColors.accent,
+                          ),
                     const SizedBox(height: 20),
 
                     Center(
@@ -253,7 +315,6 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 }
 
-// ── Rol chip'leri (register'a özel) ─────────────────────────
 class _RoleChips extends StatelessWidget {
   final String selected;
   final List<String> roles;
@@ -277,7 +338,7 @@ class _RoleChips extends StatelessWidget {
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 180),
             padding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
             decoration: BoxDecoration(
               color: isActive ? AppColors.primary : AppColors.surface,
               borderRadius: BorderRadius.circular(10),

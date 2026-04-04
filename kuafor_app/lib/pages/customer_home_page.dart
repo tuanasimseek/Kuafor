@@ -5,6 +5,7 @@ import '../widgets/app_widgets.dart';
 import '../screens/notifications_screen.dart';
 import '../screens/campaigns_screen.dart';
 import '../screens/salon_detail_screen.dart';
+import '../screens/customer_appointments_screen.dart';
 import 'login_page.dart';
 import 'profile_page.dart';
 
@@ -126,6 +127,21 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
                 // Hızlı erişim butonları
                 Row(
                   children: [
+                    Expanded(
+                      child: _QuickBtn(
+                        icon: Icons.calendar_month_outlined,
+                        label: 'Randevularım',
+                        color: AppColors.primary,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => CustomerAppointmentsScreen(
+                                customerId: _userId),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: _QuickBtn(
                         icon: Icons.campaign_outlined,
@@ -315,10 +331,11 @@ class _QuickBtn extends StatelessWidget {
             Text(
               label,
               style: const TextStyle(
-                fontSize: 13,
+                fontSize: 12,
                 fontWeight: FontWeight.w500,
                 color: AppColors.primary,
               ),
+              textAlign: TextAlign.center,
             ),
           ],
         ),

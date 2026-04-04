@@ -14,22 +14,13 @@ class AuthService {
 
   Future<String?> login(String email, String password) async {
     try {
-      final response = await _dio.post(
-        '/Auth/login',
-        data: {
-          'email': email,
-          'password': password,
-        },
-      );
-
-      print('🔹 Login response: ${response.data}');
-
+      final response = await _dio.post('/Auth/login',
+          data: {'email': email, 'password': password});
       if (response.statusCode == 200 && response.data['token'] != null) {
         final token = response.data['token'].toString();
         await saveToken(token);
         return token;
       }
-
       return null;
     } on DioException catch (e) {
       print('Login Dio hatası: ${e.response?.data ?? e.message}');
@@ -45,20 +36,20 @@ class AuthService {
     required String email,
     required String password,
     required String role,
+    String? salonName,
+    String? salonAddress,
   }) async {
     try {
-      final response = await _dio.post(
-        '/Auth/register',
-        data: {
-          'fullName': fullName,
-          'email': email,
-          'password': password,
-          'role': role,
-        },
-      );
+      final data = {
+        'fullName': fullName,
+        'email':    email,
+        'password': password,
+        'role':     role,
+        if (salonName    != null) 'salonName':    salonName,
+        if (salonAddress != null) 'salonAddress': salonAddress,
+      };
 
-      print('🔹 Register response: ${response.data}');
-
+      final response = await _dio.post('/Auth/register', data: data);
       return response.statusCode == 200 || response.statusCode == 201;
     } on DioException catch (e) {
       print('Register Dio hatası: ${e.response?.data ?? e.message}');
@@ -71,64 +62,40 @@ class AuthService {
 
   Future<String?> forgotPassword(String email) async {
     try {
-      final response = await _dio.post(
-        '/Auth/forgot-password',
-        data: {
-          'email': email,
-        },
-      );
-
-      print('🔹 Forgot password response: ${response.data}');
-
+      final response = await _dio.post('/Auth/forgot-password',
+          data: {'email': email});
       if (response.statusCode == 200 && response.data['message'] != null) {
         return response.data['message'].toString();
       }
-
       return 'İşlem tamamlandı.';
     } on DioException catch (e) {
       final data = e.response?.data;
       if (data is Map && data['message'] != null) {
         return data['message'].toString();
       }
-      print('Forgot password Dio hatası: ${e.response?.data ?? e.message}');
       return 'Bir hata oluştu.';
     } catch (e) {
-      print('Forgot password genel hata: $e');
       return 'Bir hata oluştu.';
     }
   }
 
   Future<Map<String, dynamic>?> getUserInfo(String token) async {
     try {
-      final response = await _dio.get(
-        '/Users/me',
-        options: Options(
-          headers: {
-            'Authorization': 'Bearer $token',
-          },
-        ),
-      );
-
-      print('🔹 /Users/me yanıtı: ${response.data}');
-
+      final response = await _dio.get('/Users/me',
+          options: Options(
+              headers: {'Authorization': 'Bearer $token'}));
       if (response.statusCode == 200 && response.data != null) {
         final data = response.data;
-
         final role = data['Role'] ?? data['role'] ?? '';
-        print('🔴 ROLE DEĞERİ: "$role"');
-
         return {
-          'id': data['Id'] ?? data['id'] ?? 0,
-          'email': data['Email'] ?? data['email'] ?? '',
-          'name': data['FullName'] ??
-              data['fullName'] ??
-              data['name'] ??
+          'id':      data['Id']      ?? data['id']      ?? 0,
+          'email':   data['Email']   ?? data['email']   ?? '',
+          'name':    data['FullName'] ?? data['fullName'] ?? data['name'] ??
               (data['email']?.toString().split('@').first ?? 'Kullanıcı'),
-          'role': role,
+          'role':    role,
           'message': data['Message'] ?? data['message'] ?? '',
         };
       }
-
       return null;
     } on DioException catch (e) {
       print('Kullanıcı bilgisi Dio hatası: ${e.response?.data ?? e.message}');
@@ -145,20 +112,10 @@ class AuthService {
     String? password,
   }) async {
     try {
-      final response = await _dio.put(
-        '/Users/update',
-        data: {
-          'fullName': fullName,
-          'password': password,
-        },
-        options: Options(
-          headers: {
-            'Authorization': 'Bearer $token',
-          },
-        ),
-      );
-
-      print('🔹 Update profile response: ${response.data}');
+      final response = await _dio.put('/Users/update',
+          data: {'fullName': fullName, 'password': password},
+          options: Options(
+              headers: {'Authorization': 'Bearer $token'}));
       return response.statusCode == 200;
     } on DioException catch (e) {
       print('Update profile Dio hatası: ${e.response?.data ?? e.message}');

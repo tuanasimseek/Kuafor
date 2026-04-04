@@ -6,7 +6,8 @@ import '../screens/notifications_screen.dart';
 import '../screens/campaigns_screen.dart';
 import '../screens/reviews_readonly_screen.dart';
 import '../screens/services_management_screen.dart';
-import '../screens/appointments_placeholder_screen.dart';
+import '../screens/salon_owner_appointments_screen.dart';
+import '../screens/employee_management_screen.dart';
 import 'login_page.dart';
 import 'profile_page.dart';
 
@@ -23,6 +24,7 @@ class _SalonOwnerHomePageState extends State<SalonOwnerHomePage> {
   int _userId = 0;
   int _salonId = 0;
   String _userName = '';
+  bool _loadingUser = true;
 
   @override
   void initState() {
@@ -31,8 +33,12 @@ class _SalonOwnerHomePageState extends State<SalonOwnerHomePage> {
   }
 
   Future<void> _loadUser() async {
+    setState(() => _loadingUser = true);
     final token = await _authService.getToken();
-    if (token == null) return;
+    if (token == null) {
+      setState(() => _loadingUser = false);
+      return;
+    }
     final user = await _authService.getUserInfo(token);
     if (user != null) {
       final userId = user['id'] ?? 0;
@@ -45,6 +51,18 @@ class _SalonOwnerHomePageState extends State<SalonOwnerHomePage> {
         setState(() => _salonId = salon['id'] ?? 0);
       }
     }
+    setState(() => _loadingUser = false);
+  }
+
+  void _navigate(Widget screen) {
+    if (_loadingUser) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Bilgiler yükleniyor, lütfen bekleyin...')),
+      );
+      return;
+    }
+    Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
   }
 
   Future<void> _logout(BuildContext context) async {
@@ -87,7 +105,9 @@ class _SalonOwnerHomePageState extends State<SalonOwnerHomePage> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Hoş geldiniz, $_userName',
+                        _loadingUser
+                            ? 'Yükleniyor...'
+                            : 'Hoş geldiniz, $_userName',
                         style: const TextStyle(
                           color: AppColors.white,
                           fontSize: 22,
@@ -98,137 +118,107 @@ class _SalonOwnerHomePageState extends State<SalonOwnerHomePage> {
                   ),
                 ),
                 GestureDetector(
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => NotificationsScreen(userId: _userId),
-                    ),
-                  ),
+                  onTap: () =>
+                      _navigate(NotificationsScreen(userId: _userId)),
                   child: _HeaderBtn(icon: Icons.notifications_outlined),
                 ),
                 const SizedBox(width: 10),
                 GestureDetector(
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const ProfilePage()),
-                  ),
+                  onTap: () => _navigate(const ProfilePage()),
                   child: _HeaderBtn(icon: Icons.person_outline_rounded),
                 ),
                 const SizedBox(width: 10),
                 GestureDetector(
                   onTap: () => _logout(context),
-                  child: _HeaderBtn(icon: Icons.logout_rounded, accent: true),
+                  child:
+                      _HeaderBtn(icon: Icons.logout_rounded, accent: true),
                 ),
               ],
             ),
           ),
           Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Salon Yönetimi',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.muted,
-                      letterSpacing: 0.5,
+            child: _loadingUser
+                ? const Center(
+                    child:
+                        CircularProgressIndicator(color: AppColors.accent),
+                  )
+                : SingleChildScrollView(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Salon Yönetimi',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.muted,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        _MenuCard(
+                          icon: Icons.people_outline_rounded,
+                          title: 'Çalışanlar',
+                          subtitle: 'Kuaförlerini ve personelini yönet',
+                          onTap: () => _navigate(
+                              EmployeeManagementScreen(salonId: _salonId)),
+                        ),
+                        const SizedBox(height: 10),
+                        _MenuCard(
+                          icon: Icons.content_cut_rounded,
+                          title: 'Hizmetler',
+                          subtitle:
+                              'Salon hizmetlerini düzenle ve fiyatlandır',
+                          onTap: () => _navigate(
+                              ServicesManagementScreen(salonId: _salonId)),
+                        ),
+                        const SizedBox(height: 10),
+                        // ← Artık gerçek ekrana yönlendirir
+                        _MenuCard(
+                          icon: Icons.calendar_month_outlined,
+                          title: 'Randevular',
+                          subtitle: 'Tüm salon randevularını görüntüle',
+                          onTap: () => _navigate(
+                              SalonOwnerAppointmentsScreen(
+                                  salonId: _salonId)),
+                        ),
+                        const SizedBox(height: 10),
+                        _MenuCard(
+                          icon: Icons.campaign_outlined,
+                          title: 'Kampanyalar',
+                          subtitle:
+                              'Aktif kampanyaları görüntüle ve yönet',
+                          onTap: () => _navigate(const CampaignsScreen()),
+                        ),
+                        const SizedBox(height: 10),
+                        _MenuCard(
+                          icon: Icons.star_outline_rounded,
+                          title: 'Yorumlar',
+                          subtitle: 'Müşteri yorumlarını takip et',
+                          onTap: () => _navigate(
+                              ReviewsReadOnlyScreen(salonId: _salonId)),
+                        ),
+                        const SizedBox(height: 10),
+                        _MenuCard(
+                          icon: Icons.notifications_outlined,
+                          title: 'Bildirimler',
+                          subtitle: 'Salon bildirimlerini görüntüle',
+                          onTap: () =>
+                              _navigate(NotificationsScreen(userId: _userId)),
+                        ),
+                        const SizedBox(height: 10),
+                        _MenuCard(
+                          icon: Icons.bar_chart_rounded,
+                          title: 'Raporlar',
+                          subtitle: 'Gelir ve performans istatistikleri',
+                          onTap: () => _navigate(
+                              SalonOwnerAppointmentsScreen(
+                                  salonId: _salonId)),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 14),
-                  _MenuCard(
-                    icon: Icons.people_outline_rounded,
-                    title: 'Çalışanlar',
-                    subtitle: 'Kuaförlerini ve personelini yönet',
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            const AppointmentsPlaceholderScreen(),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  _MenuCard(
-                    icon: Icons.content_cut_rounded,
-                    title: 'Hizmetler',
-                    subtitle: 'Salon hizmetlerini düzenle ve fiyatlandır',
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            ServicesManagementScreen(salonId: _salonId),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  _MenuCard(
-                    icon: Icons.calendar_month_outlined,
-                    title: 'Randevular',
-                    subtitle: 'Tüm salon randevularını görüntüle',
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            const AppointmentsPlaceholderScreen(),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  _MenuCard(
-                    icon: Icons.campaign_outlined,
-                    title: 'Kampanyalar',
-                    subtitle: 'Aktif kampanyaları görüntüle ve yönet',
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const CampaignsScreen(),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  _MenuCard(
-                    icon: Icons.star_outline_rounded,
-                    title: 'Yorumlar',
-                    subtitle: 'Müşteri yorumlarını takip et',
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            ReviewsReadOnlyScreen(salonId: _salonId),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  _MenuCard(
-                    icon: Icons.notifications_outlined,
-                    title: 'Bildirimler',
-                    subtitle: 'Salon bildirimlerini görüntüle',
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => NotificationsScreen(userId: _userId),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  _MenuCard(
-                    icon: Icons.bar_chart_rounded,
-                    title: 'Raporlar',
-                    subtitle: 'Gelir ve performans istatistikleri',
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            const AppointmentsPlaceholderScreen(),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
           ),
         ],
       ),
@@ -275,7 +265,8 @@ class _MenuCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        padding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         decoration: BoxDecoration(
           color: AppColors.white,
           borderRadius: BorderRadius.circular(14),
