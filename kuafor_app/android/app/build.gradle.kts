@@ -21,7 +21,10 @@ android {
 
     defaultConfig {
         applicationId = "com.example.kuafor_app"
-        minSdk = flutter.minSdkVersion
+        
+        // 🔥 BURAYI DEĞİŞTİRDİK
+        minSdk = 23
+        
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName

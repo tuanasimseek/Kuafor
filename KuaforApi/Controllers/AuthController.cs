@@ -44,8 +44,6 @@ namespace KuaforApi.Controllers
             if (!success)
                 return BadRequest(new { message = "Bu e-posta zaten kayıtlı." });
 
-            // Register sonrası user.Id hâlâ 0 olabilir,
-            // DB'den email ile çekip gerçek Id'yi alıyoruz
             var savedUser = _context.Users.FirstOrDefault(u => u.Email == request.Email);
             if (savedUser == null)
                 return StatusCode(500, new { message = "Kullanıcı kaydedilemedi." });
@@ -64,7 +62,9 @@ namespace KuaforApi.Controllers
                     Name        = salonName,
                     Address     = salonAddress,
                     Description = "",
-                    OwnerId     = savedUser.Id  // gerçek Id
+                    OwnerId     = savedUser.Id,
+                    Latitude    = request.SalonLatitude,   // YENİ
+                    Longitude   = request.SalonLongitude,  // YENİ
                 };
                 _context.Salons.Add(salon);
                 _context.SaveChanges();
@@ -107,12 +107,14 @@ namespace KuaforApi.Controllers
 
     public class RegisterRequest
     {
-        public string  FullName      { get; set; } = string.Empty;
-        public string  Email         { get; set; } = string.Empty;
-        public string  Password      { get; set; } = string.Empty;
-        public string  Role          { get; set; } = "Customer";
-        public string? SalonName     { get; set; }
-        public string? SalonAddress  { get; set; }
+        public string  FullName       { get; set; } = string.Empty;
+        public string  Email          { get; set; } = string.Empty;
+        public string  Password       { get; set; } = string.Empty;
+        public string  Role           { get; set; } = "Customer";
+        public string? SalonName      { get; set; }
+        public string? SalonAddress   { get; set; }
+        public double? SalonLatitude  { get; set; }  // YENİ
+        public double? SalonLongitude { get; set; }  // YENİ
     }
 
     public class LoginRequest

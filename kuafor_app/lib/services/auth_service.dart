@@ -1,12 +1,13 @@
+// lib/services/auth_service.dart
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class AuthService {
   final Dio _dio = Dio(
     BaseOptions(
-      baseUrl: 'http://127.0.0.1:5069/api',
-      connectTimeout: const Duration(seconds: 5),
-      receiveTimeout: const Duration(seconds: 5),
+      baseUrl: 'http://192.168.1.105:5069/api',
+      connectTimeout: const Duration(seconds: 10),
+      receiveTimeout: const Duration(seconds: 10),
     ),
   );
 
@@ -38,17 +39,20 @@ class AuthService {
     required String role,
     String? salonName,
     String? salonAddress,
+    double? salonLatitude,   // YENİ
+    double? salonLongitude,  // YENİ
   }) async {
     try {
-      final data = {
+      final data = <String, dynamic>{
         'fullName': fullName,
         'email':    email,
         'password': password,
         'role':     role,
-        if (salonName    != null) 'salonName':    salonName,
-        if (salonAddress != null) 'salonAddress': salonAddress,
+        if (salonName      != null) 'salonName':      salonName,
+        if (salonAddress   != null) 'salonAddress':   salonAddress,
+        if (salonLatitude  != null) 'salonLatitude':  salonLatitude,
+        if (salonLongitude != null) 'salonLongitude': salonLongitude,
       };
-
       final response = await _dio.post('/Auth/register', data: data);
       return response.statusCode == 200 || response.statusCode == 201;
     } on DioException catch (e) {
@@ -62,8 +66,8 @@ class AuthService {
 
   Future<String?> forgotPassword(String email) async {
     try {
-      final response = await _dio.post('/Auth/forgot-password',
-          data: {'email': email});
+      final response =
+          await _dio.post('/Auth/forgot-password', data: {'email': email});
       if (response.statusCode == 200 && response.data['message'] != null) {
         return response.data['message'].toString();
       }
@@ -82,14 +86,13 @@ class AuthService {
   Future<Map<String, dynamic>?> getUserInfo(String token) async {
     try {
       final response = await _dio.get('/Users/me',
-          options: Options(
-              headers: {'Authorization': 'Bearer $token'}));
+          options: Options(headers: {'Authorization': 'Bearer $token'}));
       if (response.statusCode == 200 && response.data != null) {
         final data = response.data;
         final role = data['Role'] ?? data['role'] ?? '';
         return {
-          'id':      data['Id']      ?? data['id']      ?? 0,
-          'email':   data['Email']   ?? data['email']   ?? '',
+          'id':      data['Id']       ?? data['id']       ?? 0,
+          'email':   data['Email']    ?? data['email']    ?? '',
           'name':    data['FullName'] ?? data['fullName'] ?? data['name'] ??
               (data['email']?.toString().split('@').first ?? 'Kullanıcı'),
           'role':    role,
@@ -114,8 +117,7 @@ class AuthService {
     try {
       final response = await _dio.put('/Users/update',
           data: {'fullName': fullName, 'password': password},
-          options: Options(
-              headers: {'Authorization': 'Bearer $token'}));
+          options: Options(headers: {'Authorization': 'Bearer $token'}));
       return response.statusCode == 200;
     } on DioException catch (e) {
       print('Update profile Dio hatası: ${e.response?.data ?? e.message}');

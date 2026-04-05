@@ -13,5 +13,8 @@ public class Salon
 
     public List<Employee>? Employees { get; set; }
     public List<Service>? Services { get; set; }
-}
 
+    // Konum bilgisi — nullable, eski kayıtlar için
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
+}

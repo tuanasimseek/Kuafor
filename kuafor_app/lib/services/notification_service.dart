@@ -8,7 +8,7 @@ class NotificationService {
 
   final Dio _dio = Dio(
     BaseOptions(
-      baseUrl: 'http://127.0.0.1:5069/api',
+      baseUrl: 'http://192.168.1.105:5069/api',
       connectTimeout: const Duration(seconds: 5),
       receiveTimeout: const Duration(seconds: 5),
     ),
@@ -17,7 +17,6 @@ class NotificationService {
   final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
 
-  // Local notification'ı başlat
   Future<void> initLocalNotifications() async {
     const AndroidInitializationSettings androidSettings =
         AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -37,7 +36,6 @@ class NotificationService {
     await _localNotifications.initialize(initSettings);
   }
 
-  // Local bildirim göster (Firebase foreground mesajları için)
   Future<void> showNotification({
     required int id,
     required String title,
@@ -64,7 +62,6 @@ class NotificationService {
         payload: payload);
   }
 
-  // Kullanıcının bildirimlerini API'den getir
   Future<List<dynamic>> getUserNotifications(int userId) async {
     try {
       final response = await _dio.get('/Notification/user/$userId');
@@ -76,7 +73,6 @@ class NotificationService {
     }
   }
 
-  // Bildirimi okundu olarak işaretle
   Future<bool> markAsRead(int notificationId) async {
     try {
       final response = await _dio.put('/Notification/$notificationId/read');

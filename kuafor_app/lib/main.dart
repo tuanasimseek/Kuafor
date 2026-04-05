@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
-import 'pages/login_page.dart';
 import 'pages/customer_home_page.dart';
 import 'pages/stylist_home_page.dart';
 import 'pages/salon_owner_home_page.dart';
@@ -53,8 +52,9 @@ class _SplashDeciderState extends State<SplashDecider> {
   Future<void> _checkLogin() async {
     final token = await _authService.getToken();
 
+    // Token yok → misafir olarak CustomerHomePage'e git
     if (token == null || token.isEmpty) {
-      _goTo(const LoginPage());
+      _goTo(const CustomerHomePage(guestMode: true));
       return;
     }
 
@@ -62,7 +62,7 @@ class _SplashDeciderState extends State<SplashDecider> {
 
     if (user == null) {
       await _authService.deleteToken();
-      _goTo(const LoginPage());
+      _goTo(const CustomerHomePage(guestMode: true));
       return;
     }
 
@@ -73,18 +73,18 @@ class _SplashDeciderState extends State<SplashDecider> {
       _goTo(page);
     } else {
       await _authService.deleteToken();
-      _goTo(const LoginPage());
+      _goTo(const CustomerHomePage(guestMode: true));
     }
   }
 
   Widget? _getHomePageByRole(String role) {
     switch (role) {
       case 'Customer':
-        return const CustomerHomePage();
+        return const CustomerHomePage(guestMode: false);
       case 'Hairdresser':
         return const StylistHomePage();
       case 'SalonOwner':
-        return SalonOwnerHomePage();
+        return const SalonOwnerHomePage();
       case 'Admin':
         return const AdminDashboard();
       default:

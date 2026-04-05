@@ -2,7 +2,7 @@ import 'package:dio/dio.dart';
 
 class ServiceService {
   final Dio _dio = Dio(BaseOptions(
-    baseUrl: 'http://127.0.0.1:5069/api',
+    baseUrl: 'http://192.168.1.105:5069/api',
     connectTimeout: const Duration(seconds: 5),
     receiveTimeout: const Duration(seconds: 5),
   ));
@@ -49,10 +49,9 @@ class ServiceService {
     }
   }
 
-  // DÜZELTİLDİ: salonId parametresi eklendi
   Future<bool> createStylistService({
     required int stylistId,
-    required int salonId, // YENİ
+    required int salonId,
     required String name,
     required double price,
     required int durationMinutes,
@@ -60,7 +59,7 @@ class ServiceService {
     try {
       final response = await _dio.post('/Service', data: {
         'stylistId': stylistId,
-        'salonId': salonId, // YENİ — SalonController join için gerekli
+        'salonId': salonId,
         'name': name,
         'price': price,
         'durationMinutes': durationMinutes,
