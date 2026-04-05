@@ -9,6 +9,7 @@ import '../screens/salons_map_screen.dart';
 import '../screens/campaigns_screen.dart';
 import 'login_page.dart';
 import 'register_page.dart';
+import 'profile_page.dart';
 
 class CustomerHomePage extends StatefulWidget {
   final bool guestMode;
@@ -23,6 +24,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
   final _salonService = SalonService();
 
   String _userName = '';
+  String _profileImageUrl = '';
   int _userId = 0;
   List<dynamic> _salons = [];
   bool _loading = true;
@@ -48,8 +50,9 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
     final info = await _authService.getUserInfo(token);
     if (info != null && mounted) {
       setState(() {
-        _userName = info['name'] ?? '';
-        _userId = info['id'] ?? 0;
+        _userName         = info['name']            ?? '';
+        _userId           = info['id']              ?? 0;
+        _profileImageUrl  = info['profileImageUrl'] ?? '';
       });
     }
   }
@@ -96,9 +99,9 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
           lat: _userLat!, lng: _userLng!, radius: 50.0);
       if (mounted) {
         setState(() {
-          _salons = salons;
+          _salons     = salons;
           _nearbyMode = true;
-          _loading = false;
+          _loading    = false;
         });
       }
     } catch (e) {
@@ -111,25 +114,13 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
       final salons = await _salonService.getSalons();
       if (mounted) {
         setState(() {
-          _salons = salons;
+          _salons     = salons;
           _nearbyMode = false;
-          _loading = false;
+          _loading    = false;
         });
       }
     } catch (e) {
       if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  Future<void> _logout() async {
-    await _authService.deleteToken();
-    if (mounted) {
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(
-            builder: (_) => const CustomerHomePage(guestMode: true)),
-        (_) => false,
-      );
     }
   }
 
@@ -186,6 +177,16 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
     });
   }
 
+  // Profil sayfasından döndükten sonra isim/foto güncellenmiş olabilir
+  Future<void> _openProfile() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const ProfilePage()),
+    );
+    // Profil sayfasından dönünce kullanıcı bilgilerini yenile
+    await _loadUser();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -213,6 +214,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
+          // Sol: Hoş geldiniz yazısı
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -231,6 +233,8 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
               ),
             ],
           ),
+
+          // Sağ: Misafirse "Giriş Yap" butonu, değilse profil avatarı
           widget.guestMode
               ? TextButton(
                   onPressed: () => Navigator.push(context,
@@ -248,9 +252,12 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
                           fontWeight: FontWeight.w600,
                           fontSize: 13)),
                 )
-              : IconButton(
-                  onPressed: _logout,
-                  icon: const Icon(Icons.logout, color: AppColors.white),
+              : GestureDetector(
+                  onTap: _openProfile,
+                  child: _ProfileAvatar(
+                    name: _userName,
+                    imageUrl: _profileImageUrl,
+                  ),
                 ),
         ],
       ),
@@ -359,7 +366,8 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
                 ),
                 if (!_loading)
                   TextButton(
-                    onPressed: _nearbyMode ? _loadAllSalons : _loadNearbySalons,
+                    onPressed:
+                        _nearbyMode ? _loadAllSalons : _loadNearbySalons,
                     child: Text(
                       _nearbyMode ? 'Tümünü Gör' : 'Yakındakiler',
                       style: const TextStyle(
@@ -371,20 +379,25 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
           ),
           if (_locationError != null && !_nearbyMode)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              child: Text('⚠️ $_locationError — tüm salonlar gösteriliyor',
-                  style: const TextStyle(fontSize: 11, color: AppColors.muted)),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: Text(
+                  '⚠️ $_locationError — tüm salonlar gösteriliyor',
+                  style: const TextStyle(
+                      fontSize: 11, color: AppColors.muted)),
             ),
           Expanded(
             child: _loading
                 ? const Center(
-                    child: CircularProgressIndicator(color: AppColors.accent))
+                    child:
+                        CircularProgressIndicator(color: AppColors.accent))
                 : _salons.isEmpty
                     ? _buildEmpty()
                     : ListView.builder(
                         padding: const EdgeInsets.all(16),
                         itemCount: _salons.length,
-                        itemBuilder: (_, i) => _buildSalonCard(_salons[i]),
+                        itemBuilder: (_, i) =>
+                            _buildSalonCard(_salons[i]),
                       ),
           ),
         ],
@@ -417,10 +430,10 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
   }
 
   Widget _buildSalonCard(Map<String, dynamic> salon) {
-    final name = salon['name'] ?? 'Salon';
-    final address = salon['address'] ?? '';
+    final name       = salon['name']        ?? 'Salon';
+    final address    = salon['address']     ?? '';
     final distanceKm = salon['distanceKm'];
-    final salonId = salon['id'] ?? 0;
+    final salonId    = salon['id']          ?? 0;
 
     return GestureDetector(
       onTap: () => Navigator.push(
@@ -491,6 +504,52 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
   }
 }
 
+// ── Profil avatarı (header sağ köşe) ──────────────────────────────────────────
+
+class _ProfileAvatar extends StatelessWidget {
+  final String name;
+  final String imageUrl;
+
+  const _ProfileAvatar({required this.name, required this.imageUrl});
+
+  String get _initials {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) return '?';
+    final parts = trimmed.split(' ').where((e) => e.isNotEmpty).toList();
+    if (parts.length >= 2) return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+    return parts[0][0].toUpperCase();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 42, height: 42,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.white.withOpacity(0.15),
+        border: Border.all(color: Colors.white.withOpacity(0.3), width: 1.5),
+        image: imageUrl.isNotEmpty
+            ? DecorationImage(
+                image: NetworkImage(imageUrl),
+                fit: BoxFit.cover,
+              )
+            : null,
+      ),
+      child: imageUrl.isEmpty
+          ? Center(
+              child: Text(
+                _initials,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700),
+              ),
+            )
+          : null,
+    );
+  }
+}
+
 // ── Auth Bottom Sheet ──────────────────────────────────────────────────────────
 
 class _AuthBottomSheet extends StatelessWidget {
@@ -529,8 +588,8 @@ class _AuthBottomSheet extends StatelessWidget {
           const Text(
             'Randevu almak ve diğer işlemler için\nhesabınıza giriş yapın.',
             textAlign: TextAlign.center,
-            style:
-                TextStyle(fontSize: 13, color: AppColors.muted, height: 1.5),
+            style: TextStyle(
+                fontSize: 13, color: AppColors.muted, height: 1.5),
           ),
           const SizedBox(height: 28),
           SizedBox(
@@ -601,25 +660,25 @@ class _AppointmentsPageState extends State<_AppointmentsPage> {
         await _appointmentService.getCustomerAppointments(widget.userId);
     setState(() {
       _appointments = data;
-      _loading = false;
+      _loading      = false;
     });
   }
 
   Color _statusColor(String status) {
     switch (status) {
-      case 'Confirmed':  return Colors.green;
-      case 'Cancelled':  return Colors.red;
-      case 'Completed':  return Colors.blue;
-      default:           return Colors.orange; // Pending
+      case 'Confirmed': return Colors.green;
+      case 'Cancelled': return Colors.red;
+      case 'Completed': return Colors.blue;
+      default:          return Colors.orange;
     }
   }
 
   String _statusLabel(String status) {
     switch (status) {
-      case 'Confirmed':  return 'Onaylandı';
-      case 'Cancelled':  return 'İptal Edildi';
-      case 'Completed':  return 'Tamamlandı';
-      default:           return 'Bekliyor';
+      case 'Confirmed': return 'Onaylandı';
+      case 'Cancelled': return 'İptal Edildi';
+      case 'Completed': return 'Tamamlandı';
+      default:          return 'Bekliyor';
     }
   }
 
@@ -628,7 +687,8 @@ class _AppointmentsPageState extends State<_AppointmentsPage> {
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Randevuyu İptal Et'),
-        content: const Text('Bu randevuyu iptal etmek istediğinizden emin misiniz?'),
+        content: const Text(
+            'Bu randevuyu iptal etmek istediğinizden emin misiniz?'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context, false),
@@ -641,9 +701,11 @@ class _AppointmentsPageState extends State<_AppointmentsPage> {
       ),
     );
     if (confirm != true) return;
+
     final result = await _appointmentService.cancelAppointment(
         appointmentId, widget.userId);
     if (!mounted) return;
+
     if (result.success) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Randevu iptal edildi.')),
@@ -680,19 +742,14 @@ class _AppointmentsPageState extends State<_AppointmentsPage> {
                     padding: const EdgeInsets.all(16),
                     itemCount: _appointments.length,
                     itemBuilder: (context, i) {
-                      final a = _appointments[i];
-                      final status =
-                          (a['status'] ?? a['Status'] ?? 'Pending').toString();
-                      final salonName = a['salon']?['name'] ??
-                          a['Salon']?['Name'] ?? 'Salon';
-                      final serviceName = a['service']?['name'] ??
-                          a['Service']?['Name'] ?? 'Hizmet';
-                      final dateStr = (a['appointmentDate'] ??
-                          a['AppointmentDate'] ?? '') as String;
+                      final a      = _appointments[i];
+                      final status = (a['status'] ?? a['Status'] ?? 'Pending').toString();
+                      final salonName   = a['salon']?['name']   ?? a['Salon']?['Name']   ?? 'Salon';
+                      final serviceName = a['service']?['name'] ?? a['Service']?['Name'] ?? 'Hizmet';
+                      final dateStr     = (a['appointmentDate'] ?? a['AppointmentDate'] ?? '') as String;
                       DateTime? date;
                       try { date = DateTime.parse(dateStr); } catch (_) {}
-                      final canCancel =
-                          status == 'Pending' || status == 'Confirmed';
+                      final canCancel = status == 'Pending' || status == 'Confirmed';
 
                       return Container(
                         margin: const EdgeInsets.only(bottom: 12),
@@ -726,8 +783,7 @@ class _AppointmentsPageState extends State<_AppointmentsPage> {
                                 const SizedBox(width: 14),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(salonName,
                                           style: const TextStyle(
@@ -757,8 +813,7 @@ class _AppointmentsPageState extends State<_AppointmentsPage> {
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 10, vertical: 5),
                                   decoration: BoxDecoration(
-                                    color: _statusColor(status)
-                                        .withOpacity(0.12),
+                                    color: _statusColor(status).withOpacity(0.12),
                                     borderRadius: BorderRadius.circular(20),
                                   ),
                                   child: Text(

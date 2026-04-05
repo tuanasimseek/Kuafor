@@ -30,13 +30,18 @@ namespace KuaforApi.Controllers
             if (user == null)
                 return NotFound(new { message = "Kullanıcı bulunamadı." });
 
+            var baseUrl = $"{Request.Scheme}://{Request.Host}";
+            var imageUrl = user.ProfileImageUrl;
+            if (!string.IsNullOrEmpty(imageUrl) && imageUrl.StartsWith("/"))
+                imageUrl = $"{baseUrl}{imageUrl}";
+
             return Ok(new
             {
                 id = user.Id,
                 fullName = user.FullName,
                 email = user.Email,
                 role = user.Role,
-                profileImageUrl = user.ProfileImageUrl
+                profileImageUrl = imageUrl ?? ""
             });
         }
 
@@ -60,6 +65,11 @@ namespace KuaforApi.Controllers
 
             _context.SaveChanges();
 
+            var baseUrl = $"{Request.Scheme}://{Request.Host}";
+            var imageUrl = user.ProfileImageUrl;
+            if (!string.IsNullOrEmpty(imageUrl) && imageUrl.StartsWith("/"))
+                imageUrl = $"{baseUrl}{imageUrl}";
+
             return Ok(new
             {
                 message = "Profil güncellendi.",
@@ -69,7 +79,7 @@ namespace KuaforApi.Controllers
                     fullName = user.FullName,
                     email = user.Email,
                     role = user.Role,
-                    profileImageUrl = user.ProfileImageUrl
+                    profileImageUrl = imageUrl ?? ""
                 }
             });
         }
@@ -89,29 +99,26 @@ namespace KuaforApi.Controllers
             if (file == null || file.Length == 0)
                 return BadRequest(new { message = "Dosya boş." });
 
-            // Sadece resim kabul et
             var allowed = new[] { "image/jpeg", "image/png", "image/webp", "image/jpg" };
             if (!allowed.Contains(file.ContentType.ToLower()))
                 return BadRequest(new { message = "Sadece JPEG, PNG veya WebP yükleyebilirsiniz." });
 
-            // Max 5MB
             if (file.Length > 5 * 1024 * 1024)
                 return BadRequest(new { message = "Dosya 5MB'dan büyük olamaz." });
 
-            // Klasörü oluştur
-            var uploadsFolder = Path.Combine(_env.WebRootPath ?? "wwwroot", "uploads", "profiles");
+            // _env.WebRootPath yerine sabit path — her zaman çalışır
+            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "profiles");
             Directory.CreateDirectory(uploadsFolder);
 
             // Eski fotoğrafı sil
             if (!string.IsNullOrEmpty(user.ProfileImageUrl))
             {
-                var oldFileName = Path.GetFileName(user.ProfileImageUrl);
+                var oldFileName = Path.GetFileName(new Uri(user.ProfileImageUrl).LocalPath);
                 var oldPath = Path.Combine(uploadsFolder, oldFileName);
                 if (System.IO.File.Exists(oldPath))
                     System.IO.File.Delete(oldPath);
             }
 
-            // Yeni dosya adı: userId_timestamp.ext
             var ext = Path.GetExtension(file.FileName).ToLower();
             if (string.IsNullOrEmpty(ext)) ext = ".jpg";
             var fileName = $"{user.Id}_{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}{ext}";
@@ -120,16 +127,15 @@ namespace KuaforApi.Controllers
             using (var stream = new FileStream(filePath, FileMode.Create))
                 await file.CopyToAsync(stream);
 
-            // DB güncelle — relative URL sakla
-            user.ProfileImageUrl = $"/uploads/profiles/{fileName}";
+            var baseUrl = $"{Request.Scheme}://{Request.Host}";
+            var fullUrl = $"{baseUrl}/uploads/profiles/{fileName}";
+            user.ProfileImageUrl = fullUrl;
             _context.SaveChanges();
 
-            // Tam URL döndür (client'ın base URL'i eklemesine gerek kalmasın)
-            var baseUrl = $"{Request.Scheme}://{Request.Host}";
             return Ok(new
             {
                 message = "Fotoğraf yüklendi.",
-                profileImageUrl = $"{baseUrl}/uploads/profiles/{fileName}"
+                profileImageUrl = fullUrl
             });
         }
     }
