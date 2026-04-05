@@ -15,7 +15,16 @@ class _SalonOwnerAppointmentsScreenState
     extends State<SalonOwnerAppointmentsScreen> {
   final AppointmentService _service = AppointmentService();
   late Future<List<dynamic>> _future;
-  String _filter = 'Tümü';
+  String _filter = 'All';
+
+  // Türkçe etiket → backend değeri
+  static const Map<String, String> _filterMap = {
+    'Tümü':        'All',
+    'Beklemede':   'Pending',
+    'Onaylandı':   'Confirmed',
+    'Tamamlandı':  'Completed',
+    'İptal Edildi':'Cancelled',
+  };
 
   @override
   void initState() {
@@ -29,17 +38,39 @@ class _SalonOwnerAppointmentsScreenState
     });
   }
 
-  Future<void> _updateStatus(int id, String status) async {
-    final ok = await _service.updateStatus(id, status);
+  Future<void> _updateStatus(int id, String backendStatus) async {
+    final ok = await _service.updateStatus(id, backendStatus);
     if (!mounted) return;
     if (ok) {
+      final label = _filterMap.entries
+          .firstWhere((e) => e.value == backendStatus,
+              orElse: () => const MapEntry('Güncellendi', ''))
+          .key;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Durum: $status'),
+          content: Text('Durum: $label'),
           backgroundColor: AppColors.primary,
         ),
       );
       _load();
+    }
+  }
+
+  Color _statusColor(String status) {
+    switch (status) {
+      case 'Confirmed':  return const Color(0xFF10B981);
+      case 'Cancelled':  return Colors.red;
+      case 'Completed':  return AppColors.accent;
+      default:           return Colors.orange; // Pending
+    }
+  }
+
+  String _statusLabel(String status) {
+    switch (status) {
+      case 'Confirmed':  return 'Onaylandı';
+      case 'Cancelled':  return 'İptal Edildi';
+      case 'Completed':  return 'Tamamlandı';
+      default:           return 'Beklemede';
     }
   }
 
@@ -49,13 +80,12 @@ class _SalonOwnerAppointmentsScreenState
       backgroundColor: AppColors.background,
       body: Column(
         children: [
+          // ── Header ────────────────────────────────────────────────
           Container(
             color: AppColors.primary,
             padding: EdgeInsets.only(
               top: MediaQuery.of(context).padding.top + 16,
-              left: 24,
-              right: 24,
-              bottom: 24,
+              left: 24, right: 24, bottom: 24,
             ),
             child: Row(
               children: [
@@ -68,64 +98,52 @@ class _SalonOwnerAppointmentsScreenState
                 const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'TÜM RANDEVULAR',
-                      style: TextStyle(
-                        color: AppColors.accent,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 2.5,
-                      ),
-                    ),
+                    Text('TÜM RANDEVULAR',
+                        style: TextStyle(
+                            color: AppColors.accent,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 2.5)),
                     SizedBox(height: 2),
-                    Text(
-                      'Salon randevu yönetimi',
-                      style: TextStyle(
-                          color: AppColors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w500),
-                    ),
+                    Text('Salon randevu yönetimi',
+                        style: TextStyle(
+                            color: AppColors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w500)),
                   ],
                 ),
               ],
             ),
           ),
 
-          // Filtre
+          // ── Filtre ────────────────────────────────────────────────
           Container(
             color: AppColors.surface,
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
-                children: ['Tümü', 'Beklemede', 'Onaylandı', 'Tamamlandı', 'İptal Edildi']
-                    .map((f) {
-                  final active = _filter == f;
+                children: _filterMap.entries.map((entry) {
+                  final active = _filter == entry.value;
                   return GestureDetector(
-                    onTap: () => setState(() => _filter = f),
+                    onTap: () => setState(() => _filter = entry.value),
                     child: Container(
                       margin: const EdgeInsets.only(right: 8),
                       padding: const EdgeInsets.symmetric(
                           horizontal: 14, vertical: 7),
                       decoration: BoxDecoration(
-                        color:
-                            active ? AppColors.primary : AppColors.background,
+                        color: active ? AppColors.primary : AppColors.background,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                            color: active
-                                ? AppColors.primary
-                                : AppColors.border),
+                            color: active ? AppColors.primary : AppColors.border),
                       ),
                       child: Text(
-                        f,
+                        entry.key,
                         style: TextStyle(
                           fontSize: 12,
-                          fontWeight: active
-                              ? FontWeight.w600
-                              : FontWeight.normal,
-                          color:
-                              active ? AppColors.white : AppColors.muted,
+                          fontWeight:
+                              active ? FontWeight.w600 : FontWeight.normal,
+                          color: active ? AppColors.white : AppColors.muted,
                         ),
                       ),
                     ),
@@ -135,20 +153,23 @@ class _SalonOwnerAppointmentsScreenState
             ),
           ),
 
+          // ── Liste ─────────────────────────────────────────────────
           Expanded(
             child: FutureBuilder<List<dynamic>>(
               future: _future,
               builder: (context, snap) {
                 if (snap.connectionState == ConnectionState.waiting) {
                   return const Center(
-                      child:
-                          CircularProgressIndicator(color: AppColors.accent));
+                      child: CircularProgressIndicator(color: AppColors.accent));
                 }
 
                 final all = snap.data ?? [];
-                final filtered = _filter == 'Tümü'
+                final filtered = _filter == 'All'
                     ? all
-                    : all.where((a) => a['status'] == _filter).toList();
+                    : all
+                        .where((a) =>
+                            (a['status'] ?? a['Status'] ?? '') == _filter)
+                        .toList();
 
                 if (filtered.isEmpty) {
                   return Center(
@@ -156,8 +177,7 @@ class _SalonOwnerAppointmentsScreenState
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Container(
-                          width: 68,
-                          height: 68,
+                          width: 68, height: 68,
                           decoration: BoxDecoration(
                             color: AppColors.accent.withOpacity(0.08),
                             borderRadius: BorderRadius.circular(18),
@@ -185,20 +205,19 @@ class _SalonOwnerAppointmentsScreenState
                     itemBuilder: (context, i) {
                       final a = filtered[i];
                       final status =
-                          a['status'] as String? ?? 'Beklemede';
+                          (a['status'] ?? a['Status'] ?? 'Pending') as String;
                       return _OwnerAppointmentCard(
                         appt: a,
-                        onApprove: status == 'Beklemede'
-                            ? () => _updateStatus(a['id'] as int, 'Onaylandı')
+                        statusLabel: _statusLabel(status),
+                        statusColor: _statusColor(status),
+                        onApprove: status == 'Pending'
+                            ? () => _updateStatus(a['id'] as int, 'Confirmed')
                             : null,
-                        onCancel: (status == 'Beklemede' ||
-                                status == 'Onaylandı')
-                            ? () =>
-                                _updateStatus(a['id'] as int, 'İptal Edildi')
+                        onCancel: (status == 'Pending' || status == 'Confirmed')
+                            ? () => _updateStatus(a['id'] as int, 'Cancelled')
                             : null,
-                        onComplete: status == 'Onaylandı'
-                            ? () =>
-                                _updateStatus(a['id'] as int, 'Tamamlandı')
+                        onComplete: status == 'Confirmed'
+                            ? () => _updateStatus(a['id'] as int, 'Completed')
                             : null,
                       );
                     },
@@ -215,41 +234,59 @@ class _SalonOwnerAppointmentsScreenState
 
 class _OwnerAppointmentCard extends StatelessWidget {
   final Map appt;
+  final String statusLabel;
+  final Color statusColor;
   final VoidCallback? onApprove;
   final VoidCallback? onCancel;
   final VoidCallback? onComplete;
 
   const _OwnerAppointmentCard({
     required this.appt,
+    required this.statusLabel,
+    required this.statusColor,
     this.onApprove,
     this.onCancel,
     this.onComplete,
   });
 
-  Color _statusColor(String status) {
-    switch (status) {
-      case 'Onaylandı':
-        return const Color(0xFF10B981);
-      case 'İptal Edildi':
-        return Colors.red;
-      case 'Tamamlandı':
-        return AppColors.accent;
-      default:
-        return Colors.orange;
-    }
-  }
-
   String _formatDate(String raw) {
-    final dt = DateTime.parse(raw).toLocal();
-    return '${dt.day.toString().padLeft(2, '0')}.${dt.month.toString().padLeft(2, '0')}.${dt.year}  '
-        '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+    try {
+      final dt = DateTime.parse(raw).toLocal();
+      return '${dt.day.toString().padLeft(2, '0')}.${dt.month.toString().padLeft(2, '0')}.${dt.year}'
+          '  ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+    } catch (_) {
+      return raw;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final status = appt['status'] as String? ?? 'Beklemede';
     final hasActions =
         onApprove != null || onCancel != null || onComplete != null;
+
+    final customerName = appt['customerName']
+        ?? appt['customer']?['fullName']
+        ?? appt['Customer']?['FullName']
+        ?? 'Müşteri';
+    final serviceName = appt['serviceName']
+        ?? appt['service']?['name']
+        ?? appt['Service']?['Name']
+        ?? '';
+    final stylistName = appt['stylistName']
+        ?? appt['stylist']?['fullName']
+        ?? appt['Stylist']?['FullName']
+        ?? '';
+    final dateRaw = (appt['appointmentDate']
+        ?? appt['AppointmentDate']
+        ?? '') as String;
+    final duration = appt['durationMinutes']
+        ?? appt['service']?['durationMinutes']
+        ?? appt['Service']?['DurationMinutes']
+        ?? 0;
+    final price = appt['servicePrice']
+        ?? appt['service']?['price']
+        ?? appt['Service']?['Price']
+        ?? 0;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -271,16 +308,15 @@ class _OwnerAppointmentCard extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          Text(customerName,
+                              style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.primary)),
                           Text(
-                            appt['customerName'] ?? 'Müşteri',
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.primary,
-                            ),
-                          ),
-                          Text(
-                            '${appt['serviceName'] ?? ''} · ${appt['stylistName'] ?? ''}',
+                            [serviceName, stylistName]
+                                .where((s) => s.isNotEmpty)
+                                .join(' · '),
                             style: const TextStyle(
                                 fontSize: 12, color: AppColors.muted),
                           ),
@@ -291,17 +327,14 @@ class _OwnerAppointmentCard extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: _statusColor(status).withOpacity(0.12),
+                        color: statusColor.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Text(
-                        status,
-                        style: TextStyle(
-                          color: _statusColor(status),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                      child: Text(statusLabel,
+                          style: TextStyle(
+                              color: statusColor,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600)),
                     ),
                   ],
                 ),
@@ -313,19 +346,15 @@ class _OwnerAppointmentCard extends StatelessWidget {
                     const Icon(Icons.access_time_rounded,
                         size: 14, color: AppColors.muted),
                     const SizedBox(width: 6),
-                    Text(
-                      _formatDate(appt['appointmentDate'] as String),
-                      style: const TextStyle(
-                          fontSize: 12, color: AppColors.muted),
-                    ),
+                    Text(dateRaw.isNotEmpty ? _formatDate(dateRaw) : '—',
+                        style: const TextStyle(
+                            fontSize: 12, color: AppColors.muted)),
                     const Spacer(),
-                    Text(
-                      '${appt['durationMinutes']} dk · ₺${appt['servicePrice']}',
-                      style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w500),
-                    ),
+                    Text('$duration dk · ₺$price',
+                        style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w500)),
                   ],
                 ),
               ],
@@ -351,7 +380,8 @@ class _OwnerAppointmentCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                if (onApprove != null && (onCancel != null || onComplete != null))
+                if (onApprove != null &&
+                    (onCancel != null || onComplete != null))
                   Container(width: 1, height: 40, color: AppColors.border),
                 if (onComplete != null)
                   Expanded(

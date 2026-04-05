@@ -11,9 +11,7 @@ import 'login_page.dart';
 import 'register_page.dart';
 
 class CustomerHomePage extends StatefulWidget {
-  /// true → kullanıcı giriş yapmamış, işlemler kilitli
   final bool guestMode;
-
   const CustomerHomePage({super.key, this.guestMode = false});
 
   @override
@@ -58,7 +56,6 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
 
   Future<void> _loadLocation() async {
     setState(() => _loading = true);
-
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
@@ -66,27 +63,22 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
         await _loadAllSalons();
         return;
       }
-
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
       }
-
       if (permission == LocationPermission.denied ||
           permission == LocationPermission.deniedForever) {
         _locationError = 'Konum izni verilmedi';
         await _loadAllSalons();
         return;
       }
-
       final position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
         timeLimit: const Duration(seconds: 10),
       );
-
       _userLat = position.latitude;
       _userLng = position.longitude;
-
       await _loadNearbySalons();
     } catch (e) {
       _locationError = 'Konum alınamadı';
@@ -101,10 +93,7 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
     }
     try {
       final salons = await _salonService.getNearbySalons(
-        lat: _userLat!,
-        lng: _userLng!,
-        radius: 50.0,
-      );
+          lat: _userLat!, lng: _userLng!, radius: 50.0);
       if (mounted) {
         setState(() {
           _salons = salons;
@@ -158,8 +147,6 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
     );
   }
 
-  /// Giriş gerektiren işlemler için çağrılır.
-  /// Misafir modundaysa auth bottom sheet açar, değilse [action]'ı çalıştırır.
   void _requireAuth(VoidCallback action) {
     if (widget.guestMode) {
       _showAuthSheet();
@@ -176,17 +163,13 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
       builder: (_) => _AuthBottomSheet(
         onLogin: () {
           Navigator.pop(context);
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const LoginPage()),
-          );
+          Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const LoginPage()));
         },
         onRegister: () {
           Navigator.pop(context);
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const RegisterPage()),
-          );
+          Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const RegisterPage()));
         },
       ),
     );
@@ -234,46 +217,36 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                widget.guestMode ? 'Hoş geldiniz,' : 'Hoş geldiniz,',
+                'Hoş geldiniz,',
                 style: TextStyle(
-                  color: AppColors.white.withOpacity(0.7),
-                  fontSize: 14,
-                ),
+                    color: AppColors.white.withOpacity(0.7), fontSize: 14),
               ),
               const SizedBox(height: 2),
               Text(
                 widget.guestMode ? 'Misafir' : _userName,
                 style: const TextStyle(
-                  color: AppColors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
+                    color: AppColors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold),
               ),
             ],
           ),
-          // Misafir modunda "Giriş Yap" butonu, giriş yapılmışsa logout
           widget.guestMode
               ? TextButton(
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const LoginPage()),
-                  ),
+                  onPressed: () => Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => const LoginPage())),
                   style: TextButton.styleFrom(
                     backgroundColor: AppColors.accent,
                     padding: const EdgeInsets.symmetric(
                         horizontal: 16, vertical: 8),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
+                        borderRadius: BorderRadius.circular(10)),
                   ),
-                  child: const Text(
-                    'Giriş Yap',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                    ),
-                  ),
+                  child: const Text('Giriş Yap',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13)),
                 )
               : IconButton(
                   onPressed: _logout,
@@ -289,20 +262,14 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
       padding: const EdgeInsets.all(16),
       child: Row(
         children: [
-          _actionBtn(
-            Icons.calendar_today,
-            'Randevularım',
-            _openAppointments,
-            locked: widget.guestMode,
-          ),
+          _actionBtn(Icons.calendar_today, 'Randevularım', _openAppointments,
+              locked: widget.guestMode),
           const SizedBox(width: 10),
           _actionBtn(
             Icons.local_offer,
             'Kampanyalar',
-            () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const CampaignsScreen()),
-            ),
+            () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const CampaignsScreen())),
           ),
           const SizedBox(width: 10),
           _actionBtn(Icons.map, 'Haritada Gör', _openMap),
@@ -311,12 +278,8 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
     );
   }
 
-  Widget _actionBtn(
-    IconData icon,
-    String label,
-    VoidCallback onTap, {
-    bool locked = false,
-  }) {
+  Widget _actionBtn(IconData icon, String label, VoidCallback onTap,
+      {bool locked = false}) {
     return Expanded(
       child: GestureDetector(
         onTap: locked ? _showAuthSheet : onTap,
@@ -328,10 +291,9 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
             border: Border.all(color: AppColors.border),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.04),
-                blurRadius: 6,
-                offset: const Offset(0, 2),
-              ),
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2))
             ],
           ),
           child: Column(
@@ -351,15 +313,12 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
                 ],
               ),
               const SizedBox(height: 6),
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.primary,
-                ),
-                textAlign: TextAlign.center,
-              ),
+              Text(label,
+                  style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primary),
+                  textAlign: TextAlign.center),
             ],
           ),
         ),
@@ -383,29 +342,24 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
                       Text(
                         _nearbyMode ? 'Yakındaki Salonlar' : 'Tüm Salonlar',
                         style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primary,
-                        ),
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primary),
                       ),
                       if (_nearbyMode && _userLat != null) ...[
                         const SizedBox(height: 3),
-                        const Text(
-                          '📍 Konuma göre',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: AppColors.accent,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
+                        const Text('📍 Konuma göre',
+                            style: TextStyle(
+                                fontSize: 11,
+                                color: AppColors.accent,
+                                fontWeight: FontWeight.w500)),
                       ],
                     ],
                   ),
                 ),
                 if (!_loading)
                   TextButton(
-                    onPressed:
-                        _nearbyMode ? _loadAllSalons : _loadNearbySalons,
+                    onPressed: _nearbyMode ? _loadAllSalons : _loadNearbySalons,
                     child: Text(
                       _nearbyMode ? 'Tümünü Gör' : 'Yakındakiler',
                       style: const TextStyle(
@@ -417,26 +371,20 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
           ),
           if (_locationError != null && !_nearbyMode)
             Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              child: Text(
-                '⚠️ $_locationError — tüm salonlar gösteriliyor',
-                style:
-                    const TextStyle(fontSize: 11, color: AppColors.muted),
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: Text('⚠️ $_locationError — tüm salonlar gösteriliyor',
+                  style: const TextStyle(fontSize: 11, color: AppColors.muted)),
             ),
           Expanded(
             child: _loading
                 ? const Center(
-                    child: CircularProgressIndicator(
-                        color: AppColors.accent))
+                    child: CircularProgressIndicator(color: AppColors.accent))
                 : _salons.isEmpty
                     ? _buildEmpty()
                     : ListView.builder(
                         padding: const EdgeInsets.all(16),
                         itemCount: _salons.length,
-                        itemBuilder: (_, i) =>
-                            _buildSalonCard(_salons[i]),
+                        itemBuilder: (_, i) => _buildSalonCard(_salons[i]),
                       ),
           ),
         ],
@@ -475,18 +423,16 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
     final salonId = salon['id'] ?? 0;
 
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => SalonDetailScreen(
-              salonId: salonId,
-              userId: _userId,
-              salonName: name,
-            ),
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => SalonDetailScreen(
+            salonId: salonId,
+            userId: _userId,
+            salonName: name,
           ),
-        );
-      },
+        ),
+      ),
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),
@@ -496,17 +442,15 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
           border: Border.all(color: AppColors.border),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 8,
+                offset: const Offset(0, 2))
           ],
         ),
         child: Row(
           children: [
             Container(
-              width: 52,
-              height: 52,
+              width: 52, height: 52,
               decoration: BoxDecoration(
                 color: AppColors.accent.withOpacity(0.12),
                 borderRadius: BorderRadius.circular(14),
@@ -519,14 +463,11 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    name,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
-                    ),
-                  ),
+                  Text(name,
+                      style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary)),
                   if (address.isNotEmpty)
                     Text(address,
                         style: const TextStyle(
@@ -535,10 +476,9 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
                     Text(
                       '📍 ${(distanceKm as double).toStringAsFixed(1)} km uzakta',
                       style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.accent,
-                        fontWeight: FontWeight.w600,
-                      ),
+                          fontSize: 12,
+                          color: AppColors.accent,
+                          fontWeight: FontWeight.w600),
                     ),
                 ],
               ),
@@ -551,16 +491,13 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
   }
 }
 
-// ─── Auth Bottom Sheet ─────────────────────────────────────────────────────────
+// ── Auth Bottom Sheet ──────────────────────────────────────────────────────────
 
 class _AuthBottomSheet extends StatelessWidget {
   final VoidCallback onLogin;
   final VoidCallback onRegister;
 
-  const _AuthBottomSheet({
-    required this.onLogin,
-    required this.onRegister,
-  });
+  const _AuthBottomSheet({required this.onLogin, required this.onRegister});
 
   @override
   Widget build(BuildContext context) {
@@ -573,42 +510,29 @@ class _AuthBottomSheet extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Tutamaç çizgisi
           Container(
-            width: 40,
-            height: 4,
+            width: 40, height: 4,
             decoration: BoxDecoration(
-              color: AppColors.border,
-              borderRadius: BorderRadius.circular(2),
-            ),
+                color: AppColors.border,
+                borderRadius: BorderRadius.circular(2)),
           ),
           const SizedBox(height: 24),
-
           const Icon(Icons.lock_outline_rounded,
               size: 40, color: AppColors.accent),
           const SizedBox(height: 14),
-
-          const Text(
-            'Bu işlem için giriş gerekiyor',
-            style: TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.bold,
-              color: AppColors.primary,
-            ),
-          ),
+          const Text('Bu işlem için giriş gerekiyor',
+              style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primary)),
           const SizedBox(height: 8),
           const Text(
             'Randevu almak ve diğer işlemler için\nhesabınıza giriş yapın.',
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 13,
-              color: AppColors.muted,
-              height: 1.5,
-            ),
+            style:
+                TextStyle(fontSize: 13, color: AppColors.muted, height: 1.5),
           ),
           const SizedBox(height: 28),
-
-          // Giriş Yap
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
@@ -617,22 +541,16 @@ class _AuthBottomSheet extends StatelessWidget {
                 backgroundColor: AppColors.mainDark,
                 padding: const EdgeInsets.symmetric(vertical: 15),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                    borderRadius: BorderRadius.circular(12)),
               ),
-              child: const Text(
-                'Giriş Yap',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 15,
-                ),
-              ),
+              child: const Text('Giriş Yap',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15)),
             ),
           ),
           const SizedBox(height: 10),
-
-          // Kayıt Ol
           SizedBox(
             width: double.infinity,
             child: OutlinedButton(
@@ -641,17 +559,13 @@ class _AuthBottomSheet extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 15),
                 side: const BorderSide(color: AppColors.mainDark, width: 1.5),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                    borderRadius: BorderRadius.circular(12)),
               ),
-              child: const Text(
-                'Kayıt Ol',
-                style: TextStyle(
-                  color: AppColors.mainDark,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 15,
-                ),
-              ),
+              child: const Text('Kayıt Ol',
+                  style: TextStyle(
+                      color: AppColors.mainDark,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15)),
             ),
           ),
         ],
@@ -660,7 +574,7 @@ class _AuthBottomSheet extends StatelessWidget {
   }
 }
 
-// ─── Randevularım Sayfası ──────────────────────────────────────────────────────
+// ── Randevularım Sayfası ───────────────────────────────────────────────────────
 
 class _AppointmentsPage extends StatefulWidget {
   final int userId;
@@ -692,28 +606,53 @@ class _AppointmentsPageState extends State<_AppointmentsPage> {
   }
 
   Color _statusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'confirmed':
-        return Colors.green;
-      case 'cancelled':
-        return Colors.red;
-      case 'completed':
-        return Colors.blue;
-      default:
-        return Colors.orange;
+    switch (status) {
+      case 'Confirmed':  return Colors.green;
+      case 'Cancelled':  return Colors.red;
+      case 'Completed':  return Colors.blue;
+      default:           return Colors.orange; // Pending
     }
   }
 
   String _statusLabel(String status) {
-    switch (status.toLowerCase()) {
-      case 'confirmed':
-        return 'Onaylandı';
-      case 'cancelled':
-        return 'İptal';
-      case 'completed':
-        return 'Tamamlandı';
-      default:
-        return 'Bekliyor';
+    switch (status) {
+      case 'Confirmed':  return 'Onaylandı';
+      case 'Cancelled':  return 'İptal Edildi';
+      case 'Completed':  return 'Tamamlandı';
+      default:           return 'Bekliyor';
+    }
+  }
+
+  Future<void> _cancel(int appointmentId) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Randevuyu İptal Et'),
+        content: const Text('Bu randevuyu iptal etmek istediğinizden emin misiniz?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Hayır')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Evet, İptal Et',
+                  style: TextStyle(color: Colors.red))),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+    final result = await _appointmentService.cancelAppointment(
+        appointmentId, widget.userId);
+    if (!mounted) return;
+    if (result.success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Randevu iptal edildi.')),
+      );
+      _load();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result.error ?? 'İptal başarısız.')),
+      );
     }
   }
 
@@ -730,8 +669,7 @@ class _AppointmentsPageState extends State<_AppointmentsPage> {
       ),
       body: _loading
           ? const Center(
-              child:
-                  CircularProgressIndicator(color: AppColors.accent))
+              child: CircularProgressIndicator(color: AppColors.accent))
           : _appointments.isEmpty
               ? const Center(
                   child: Text('Henüz randevunuz yok.',
@@ -744,21 +682,17 @@ class _AppointmentsPageState extends State<_AppointmentsPage> {
                     itemBuilder: (context, i) {
                       final a = _appointments[i];
                       final status =
-                          (a['status'] ?? a['Status'] ?? 'Pending')
-                              .toString();
+                          (a['status'] ?? a['Status'] ?? 'Pending').toString();
                       final salonName = a['salon']?['name'] ??
-                          a['Salon']?['Name'] ??
-                          'Salon';
+                          a['Salon']?['Name'] ?? 'Salon';
                       final serviceName = a['service']?['name'] ??
-                          a['Service']?['Name'] ??
-                          'Hizmet';
-                      final dateStr = a['appointmentDate'] ??
-                          a['AppointmentDate'] ??
-                          '';
+                          a['Service']?['Name'] ?? 'Hizmet';
+                      final dateStr = (a['appointmentDate'] ??
+                          a['AppointmentDate'] ?? '') as String;
                       DateTime? date;
-                      try {
-                        date = DateTime.parse(dateStr);
-                      } catch (_) {}
+                      try { date = DateTime.parse(dateStr); } catch (_) {}
+                      final canCancel =
+                          status == 'Pending' || status == 'Confirmed';
 
                       return Container(
                         margin: const EdgeInsets.only(bottom: 12),
@@ -769,75 +703,97 @@ class _AppointmentsPageState extends State<_AppointmentsPage> {
                           border: Border.all(color: AppColors.border),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.03),
-                              blurRadius: 6,
-                              offset: const Offset(0, 2),
-                            ),
+                                color: Colors.black.withOpacity(0.03),
+                                blurRadius: 6,
+                                offset: const Offset(0, 2))
                           ],
                         ),
-                        child: Row(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Container(
-                              width: 48,
-                              height: 48,
-                              decoration: BoxDecoration(
-                                color:
-                                    AppColors.accent.withOpacity(0.12),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Icon(
-                                  Icons.calendar_today_rounded,
-                                  color: AppColors.accent,
-                                  size: 22),
+                            Row(
+                              children: [
+                                Container(
+                                  width: 48, height: 48,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.accent.withOpacity(0.12),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Icon(
+                                      Icons.calendar_today_rounded,
+                                      color: AppColors.accent, size: 22),
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(salonName,
+                                          style: const TextStyle(
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 14,
+                                              color: AppColors.primary)),
+                                      const SizedBox(height: 3),
+                                      Text(serviceName,
+                                          style: const TextStyle(
+                                              fontSize: 12,
+                                              color: AppColors.muted)),
+                                      if (date != null) ...[
+                                        const SizedBox(height: 3),
+                                        Text(
+                                          '${date.day}.${date.month}.${date.year}'
+                                          '  ${date.hour.toString().padLeft(2, '0')}:'
+                                          '${date.minute.toString().padLeft(2, '0')}',
+                                          style: const TextStyle(
+                                              fontSize: 11,
+                                              color: AppColors.muted),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 5),
+                                  decoration: BoxDecoration(
+                                    color: _statusColor(status)
+                                        .withOpacity(0.12),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Text(
+                                    _statusLabel(status),
+                                    style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: _statusColor(status)),
+                                  ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment:
-                                    CrossAxisAlignment.start,
-                                children: [
-                                  Text(salonName,
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 14,
-                                          color: AppColors.primary)),
-                                  const SizedBox(height: 3),
-                                  Text(serviceName,
-                                      style: const TextStyle(
-                                          fontSize: 12,
-                                          color: AppColors.muted)),
-                                  if (date != null) ...[
-                                    const SizedBox(height: 3),
-                                    Text(
-                                      '${date.day}.${date.month}.${date.year}'
-                                      '  ${date.hour.toString().padLeft(2, '0')}:'
-                                      '${date.minute.toString().padLeft(2, '0')}',
-                                      style: const TextStyle(
-                                          fontSize: 11,
-                                          color: AppColors.muted),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 5),
-                              decoration: BoxDecoration(
-                                color: _statusColor(status)
-                                    .withOpacity(0.12),
-                                borderRadius:
-                                    BorderRadius.circular(20),
-                              ),
-                              child: Text(
-                                _statusLabel(status),
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: _statusColor(status),
+                            if (canCancel) ...[
+                              const SizedBox(height: 10),
+                              const Divider(height: 1, color: AppColors.border),
+                              GestureDetector(
+                                onTap: () => _cancel(a['id'] as int),
+                                child: const Padding(
+                                  padding: EdgeInsets.only(top: 10),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.cancel_outlined,
+                                          size: 14, color: Colors.red),
+                                      SizedBox(width: 6),
+                                      Text('Randevuyu İptal Et',
+                                          style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.red,
+                                              fontWeight: FontWeight.w600)),
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ),
+                            ],
                           ],
                         ),
                       );

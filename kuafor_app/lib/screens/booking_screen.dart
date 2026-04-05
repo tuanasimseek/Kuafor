@@ -32,7 +32,6 @@ class _BookingScreenState extends State<BookingScreen> {
   final AppointmentService _appointmentService = AppointmentService();
   final SalonService _salonService = SalonService();
 
-  // Adım: 0 = stilist seç, 1 = tarih seç, 2 = saat seç, 3 = özet
   int _step = 0;
 
   List<dynamic> _stylists = [];
@@ -56,11 +55,48 @@ class _BookingScreenState extends State<BookingScreen> {
 
   Future<void> _loadStylists() async {
     setState(() => _loadingStylists = true);
+
+    // Önce Employee endpoint'ini dene
+    final employees = await _salonService.getEmployeesBySalon(widget.salonId);
+    print('[BookingScreen] employees from /Employee/salon: $employees');
+
+    if (employees.isNotEmpty) {
+      if (mounted) {
+        setState(() {
+          _stylists = employees;
+          _loadingStylists = false;
+        });
+      }
+      return;
+    }
+
+    // Fallback: services içindeki stylistName'lerden stilist listesi oluştur
+    // Bu durumda stylistId olmayacak — sadece isim gösterilir
     final salon = await _salonService.getSalonDetail(widget.salonId);
-    final employees = (salon?['employees'] as List<dynamic>?) ?? [];
+    final services = (salon?['services'] as List<dynamic>?) ?? [];
+    print('[BookingScreen] services fallback: $services');
+
+    // stylistName'e göre tekrarsız stilist listesi
+    final Map<String, Map<String, dynamic>> stylistMap = {};
+    for (final s in services) {
+      final stylistName = s['stylistName'] as String?;
+      if (stylistName != null && stylistName.isNotEmpty) {
+        stylistMap[stylistName] = {
+          'id': null,       // stylistId yok — backend'den gelmiyor
+          'userId': null,
+          'user': {
+            'fullName': stylistName,
+            'specialty': '',
+            'rating': 0,
+          },
+          '_fromServices': true, // flag: bu fallback verisi
+        };
+      }
+    }
+
     if (mounted) {
       setState(() {
-        _stylists = employees;
+        _stylists = stylistMap.values.toList();
         _loadingStylists = false;
       });
     }
@@ -68,11 +104,13 @@ class _BookingScreenState extends State<BookingScreen> {
 
   Future<void> _loadBusySlots() async {
     if (_selectedStylist == null) return;
+    final stylistId = _selectedStylist!['userId'] ?? _selectedStylist!['id'];
+    // stylistId yoksa busy slot kontrolü atla
+    if (stylistId == null) return;
     setState(() => _loadingSlots = true);
     final dateStr =
         '${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}-${_selectedDate.day.toString().padLeft(2, '0')}';
-    final stylistId = (_selectedStylist!['userId'] ?? _selectedStylist!['id']) as int;
-    final slots = await _appointmentService.getBusySlots(stylistId, dateStr);
+    final slots = await _appointmentService.getBusySlots(stylistId as int, dateStr);
     if (mounted) {
       setState(() {
         _busySlots = slots.map<DateTime>((s) => DateTime.parse(s.toString())).toList();
@@ -113,6 +151,16 @@ class _BookingScreenState extends State<BookingScreen> {
 
   Future<void> _book() async {
     if (_selectedStylist == null || _selectedTime == null) return;
+
+    final stylistId = _selectedStylist!['userId'] ?? _selectedStylist!['id'];
+
+    // stylistId yoksa (fallback modunda) hata göster
+    if (stylistId == null) {
+      setState(() => _error =
+          'Stilist ID bilgisi alınamadı. Lütfen salon yöneticisiyle iletişime geçin.');
+      return;
+    }
+
     setState(() { _booking = true; _error = null; });
 
     final dt = DateTime(
@@ -123,11 +171,9 @@ class _BookingScreenState extends State<BookingScreen> {
       _selectedTime!.minute,
     );
 
-    final stylistId = (_selectedStylist!['userId'] ?? _selectedStylist!['id']) as int;
-
     final result = await _appointmentService.createAppointment(
       customerId: widget.customerId,
-      stylistId: stylistId,
+      stylistId: stylistId as int,
       salonId: widget.salonId,
       serviceId: widget.serviceId,
       appointmentDate: dt,
@@ -191,8 +237,8 @@ class _BookingScreenState extends State<BookingScreen> {
             PrimaryButton(
               label: 'Tamam',
               onTap: () {
-                Navigator.pop(context); // sheet
-                Navigator.pop(context); // booking screen
+                Navigator.pop(context);
+                Navigator.pop(context);
               },
             ),
           ],
@@ -327,16 +373,17 @@ class _BookingScreenState extends State<BookingScreen> {
     }
   }
 
-  // ── ADIM 0: Stilist ──────────────────────────────────────────────────────────
-
   Widget _buildStylistStep() {
     if (_loadingStylists) {
       return const Center(child: CircularProgressIndicator(color: AppColors.accent));
     }
     if (_stylists.isEmpty) {
       return const Center(
-        child: Text('Bu salonda stilist bulunamadı.',
-            style: TextStyle(color: AppColors.muted)),
+        child: Padding(
+          padding: EdgeInsets.all(32),
+          child: Text('Bu salonda stilist bulunamadı.',
+              style: TextStyle(color: AppColors.muted)),
+        ),
       );
     }
     return ListView.builder(
@@ -346,11 +393,12 @@ class _BookingScreenState extends State<BookingScreen> {
         final s = _stylists[i];
         final user = s['user'] as Map<String, dynamic>? ?? s;
         final name = user['fullName'] ?? user['name'] ?? 'Stilist';
-        final specialty = user['specialty'] ?? '';
+        final specialty = user['specialty'] as String? ?? '';
         final rating = (user['rating'] as num?)?.toDouble() ?? 0.0;
-        final userId = (s['userId'] ?? s['id'] ?? user['id']) as int;
+        final stylistId = s['userId'] ?? s['id'] ?? user['id'];
         final selected = _selectedStylist != null &&
-            ((_selectedStylist!['userId'] ?? _selectedStylist!['id']) == userId);
+            ((_selectedStylist!['userId'] ?? _selectedStylist!['id']) ==
+                stylistId);
 
         return GestureDetector(
           onTap: () => setState(() => _selectedStylist = s),
@@ -389,19 +437,27 @@ class _BookingScreenState extends State<BookingScreen> {
                       Text(name, style: const TextStyle(fontSize: 14,
                           fontWeight: FontWeight.w600, color: AppColors.primary)),
                       if (specialty.isNotEmpty)
-                        Text(specialty, style: const TextStyle(fontSize: 12, color: AppColors.muted)),
+                        Text(specialty,
+                            style: const TextStyle(fontSize: 12, color: AppColors.muted)),
                       if (rating > 0)
                         Row(children: [
-                          const Icon(Icons.star_rounded, size: 13, color: Color(0xFFFBBF24)),
+                          const Icon(Icons.star_rounded, size: 13,
+                              color: Color(0xFFFBBF24)),
                           const SizedBox(width: 3),
                           Text(rating.toStringAsFixed(1),
-                              style: const TextStyle(fontSize: 12, color: AppColors.muted)),
+                              style: const TextStyle(
+                                  fontSize: 12, color: AppColors.muted)),
                         ]),
+                      // fallback uyarısı
+                      if (s['_fromServices'] == true && stylistId == null)
+                        const Text('* Randevu için salon sahibiyle iletişime geçin',
+                            style: TextStyle(fontSize: 10, color: Colors.orange)),
                     ],
                   ),
                 ),
                 if (selected)
-                  const Icon(Icons.check_circle_rounded, color: AppColors.accent, size: 22),
+                  const Icon(Icons.check_circle_rounded,
+                      color: AppColors.accent, size: 22),
               ],
             ),
           ),
@@ -409,8 +465,6 @@ class _BookingScreenState extends State<BookingScreen> {
       },
     );
   }
-
-  // ── ADIM 1: Tarih ───────────────────────────────────────────────────────────
 
   Widget _buildDateStep() {
     final now = DateTime.now();
@@ -423,7 +477,8 @@ class _BookingScreenState extends State<BookingScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text('Tarih Seçin',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.primary)),
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600,
+                  color: AppColors.primary)),
           const SizedBox(height: 14),
           Container(
             decoration: BoxDecoration(
@@ -432,7 +487,9 @@ class _BookingScreenState extends State<BookingScreen> {
               border: Border.all(color: AppColors.border),
             ),
             child: CalendarDatePicker(
-              initialDate: _selectedDate.isAfter(firstDay) ? _selectedDate : firstDay.add(const Duration(days: 1)),
+              initialDate: _selectedDate.isAfter(firstDay)
+                  ? _selectedDate
+                  : firstDay.add(const Duration(days: 1)),
               firstDate: firstDay.add(const Duration(days: 1)),
               lastDate: lastDay,
               onDateChanged: (date) => setState(() => _selectedDate = date),
@@ -448,11 +505,13 @@ class _BookingScreenState extends State<BookingScreen> {
               border: Border.all(color: AppColors.accent.withOpacity(0.2)),
             ),
             child: Row(children: [
-              const Icon(Icons.calendar_today_rounded, size: 16, color: AppColors.accent),
+              const Icon(Icons.calendar_today_rounded, size: 16,
+                  color: AppColors.accent),
               const SizedBox(width: 10),
               Text(
                 'Seçilen: ${_selectedDate.day}.${_selectedDate.month}.${_selectedDate.year}',
-                style: const TextStyle(fontSize: 13, color: AppColors.accent, fontWeight: FontWeight.w600),
+                style: const TextStyle(fontSize: 13, color: AppColors.accent,
+                    fontWeight: FontWeight.w600),
               ),
             ]),
           ),
@@ -461,12 +520,11 @@ class _BookingScreenState extends State<BookingScreen> {
     );
   }
 
-  // ── ADIM 2: Saat ────────────────────────────────────────────────────────────
-
   Widget _buildTimeStep() {
     final slots = _generateTimeSlots();
     return _loadingSlots
-        ? const Center(child: CircularProgressIndicator(color: AppColors.accent))
+        ? const Center(
+            child: CircularProgressIndicator(color: AppColors.accent))
         : GridView.builder(
             padding: const EdgeInsets.all(16),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -518,12 +576,11 @@ class _BookingScreenState extends State<BookingScreen> {
           );
   }
 
-  // ── ADIM 3: Özet ────────────────────────────────────────────────────────────
-
   Widget _buildSummaryStep() {
     final stylistUser = _selectedStylist?['user'] as Map<String, dynamic>?
         ?? _selectedStylist ?? {};
-    final stylistName = stylistUser['fullName'] ?? stylistUser['name'] ?? 'Stilist';
+    final stylistName =
+        stylistUser['fullName'] ?? stylistUser['name'] ?? 'Stilist';
 
     final rows = [
       _SummaryRow(icon: Icons.store_outlined, label: 'Salon', value: widget.salonName),
@@ -532,8 +589,7 @@ class _BookingScreenState extends State<BookingScreen> {
       _SummaryRow(
         icon: Icons.calendar_today_rounded,
         label: 'Tarih',
-        value:
-            '${_selectedDate.day}.${_selectedDate.month}.${_selectedDate.year}',
+        value: '${_selectedDate.day}.${_selectedDate.month}.${_selectedDate.year}',
       ),
       _SummaryRow(
         icon: Icons.access_time_rounded,
@@ -560,7 +616,8 @@ class _BookingScreenState extends State<BookingScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text('Randevu Özeti',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.primary)),
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600,
+                  color: AppColors.primary)),
           const SizedBox(height: 14),
           Container(
             decoration: BoxDecoration(
@@ -574,7 +631,8 @@ class _BookingScreenState extends State<BookingScreen> {
                   children: [
                     rows[i],
                     if (i < rows.length - 1)
-                      const Divider(height: 1, color: AppColors.border, indent: 16, endIndent: 16),
+                      const Divider(height: 1, color: AppColors.border,
+                          indent: 16, endIndent: 16),
                   ],
                 );
               }),
@@ -588,8 +646,6 @@ class _BookingScreenState extends State<BookingScreen> {
       ),
     );
   }
-
-  // ── Alt bar ─────────────────────────────────────────────────────────────────
 
   Widget _buildBottomBar() {
     final canNext = switch (_step) {
@@ -629,7 +685,8 @@ class _BookingScreenState extends State<BookingScreen> {
           if (_step > 0) const SizedBox(width: 12),
           Expanded(
             child: _booking
-                ? const Center(child: CircularProgressIndicator(color: AppColors.accent))
+                ? const Center(
+                    child: CircularProgressIndicator(color: AppColors.accent))
                 : GestureDetector(
                     onTap: canNext
                         ? () async {
@@ -637,7 +694,6 @@ class _BookingScreenState extends State<BookingScreen> {
                               await _book();
                             } else {
                               if (_step == 1) {
-                                // Tarih seçildikten sonra meşgul slotları çek
                                 await _loadBusySlots();
                               }
                               setState(() { _step++; _error = null; });
