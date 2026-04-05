@@ -1,4 +1,4 @@
-// lib/services/auth_service.dart
+import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -7,7 +7,7 @@ class AuthService {
     BaseOptions(
       baseUrl: 'http://192.168.1.105:5069/api',
       connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 10),
+      receiveTimeout: const Duration(seconds: 30), // upload için biraz daha uzun
     ),
   );
 
@@ -39,8 +39,8 @@ class AuthService {
     required String role,
     String? salonName,
     String? salonAddress,
-    double? salonLatitude,   // YENİ
-    double? salonLongitude,  // YENİ
+    double? salonLatitude,
+    double? salonLongitude,
   }) async {
     try {
       final data = <String, dynamic>{
@@ -91,12 +91,13 @@ class AuthService {
         final data = response.data;
         final role = data['Role'] ?? data['role'] ?? '';
         return {
-          'id':      data['Id']       ?? data['id']       ?? 0,
-          'email':   data['Email']    ?? data['email']    ?? '',
-          'name':    data['FullName'] ?? data['fullName'] ?? data['name'] ??
+          'id':              data['Id']             ?? data['id']             ?? 0,
+          'email':           data['Email']          ?? data['email']          ?? '',
+          'name':            data['FullName']       ?? data['fullName']       ?? data['name'] ??
               (data['email']?.toString().split('@').first ?? 'Kullanıcı'),
-          'role':    role,
-          'message': data['Message'] ?? data['message'] ?? '',
+          'role':            role,
+          'message':         data['Message']        ?? data['message']        ?? '',
+          'profileImageUrl': data['ProfileImageUrl'] ?? data['profileImageUrl'] ?? '',
         };
       }
       return null;
@@ -125,6 +126,46 @@ class AuthService {
     } catch (e) {
       print('Update profile genel hata: $e');
       return false;
+    }
+  }
+
+  /// Profil fotoğrafı upload eder.
+  /// Başarılıysa sunucudan dönen tam URL'yi (http://...) döndürür.
+  /// Hata durumunda null döner.
+  Future<String?> uploadProfilePhoto({
+    required String token,
+    required String filePath,
+  }) async {
+    try {
+      final fileName = filePath.split('/').last;
+      final formData = FormData.fromMap({
+        'file': await MultipartFile.fromFile(
+          filePath,
+          filename: fileName,
+        ),
+      });
+
+      final response = await _dio.post(
+        '/Users/upload-photo',
+        data: formData,
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'multipart/form-data',
+          },
+        ),
+      );
+
+      if (response.statusCode == 200 && response.data['profileImageUrl'] != null) {
+        return response.data['profileImageUrl'].toString();
+      }
+      return null;
+    } on DioException catch (e) {
+      print('Upload photo Dio hatası: ${e.response?.data ?? e.message}');
+      return null;
+    } catch (e) {
+      print('Upload photo genel hata: $e');
+      return null;
     }
   }
 

@@ -8,14 +8,11 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Veritabanı bağlantısı
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Servisler
 builder.Services.AddScoped<AuthService>();
 
-// JWT
 var jwtKey = "this_is_a_very_strong_secret_key_1234567890";
 var key = Encoding.UTF8.GetBytes(jwtKey);
 
@@ -40,7 +37,6 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
@@ -51,7 +47,6 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Controllers + Swagger
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
@@ -93,6 +88,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseStaticFiles(); // ← wwwroot/uploads/profiles/ serve eder
 app.UseCors("AllowAll");
 
 app.UseAuthentication();

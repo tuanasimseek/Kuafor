@@ -16,7 +16,7 @@ public class NotificationController : ControllerBase
         _context = context;
     }
 
-    // GET: api/notification/user/{userId}
+    // GET: api/Notification/user/{userId}
     [HttpGet("user/{userId}")]
     public async Task<IActionResult> GetUserNotifications(int userId)
     {
@@ -27,28 +27,37 @@ public class NotificationController : ControllerBase
         return Ok(notifications);
     }
 
-    // POST: api/notification
+    // POST: api/Notification
     [HttpPost]
     public async Task<IActionResult> CreateNotification([FromBody] Notification notification)
     {
         notification.CreatedAt = DateTime.UtcNow;
         _context.Notifications.Add(notification);
         await _context.SaveChangesAsync();
-
         return Ok(notification);
     }
 
-    // PUT: api/notification/{id}/read
+    // PUT: api/Notification/{id}/read
     [HttpPut("{id}/read")]
     public async Task<IActionResult> MarkAsRead(int id)
     {
         var notification = await _context.Notifications.FindAsync(id);
-        if (notification == null)
-            return NotFound();
-
+        if (notification == null) return NotFound();
         notification.IsRead = true;
         await _context.SaveChangesAsync();
+        return NoContent();
+    }
 
+    // PUT: api/Notification/user/{userId}/read-all
+    [HttpPut("user/{userId}/read-all")]
+    public async Task<IActionResult> MarkAllAsRead(int userId)
+    {
+        var notifications = await _context.Notifications
+            .Where(n => n.UserId == userId && !n.IsRead)
+            .ToListAsync();
+        foreach (var n in notifications)
+            n.IsRead = true;
+        await _context.SaveChangesAsync();
         return NoContent();
     }
 }
