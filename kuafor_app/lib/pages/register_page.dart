@@ -15,8 +15,8 @@ class _RegisterPageState extends State<RegisterPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  final _salonNameController       = TextEditingController();
-  final _salonAddressController    = TextEditingController();
+  final _salonNameController = TextEditingController();
+  final _salonAddressController = TextEditingController();
 
   String _selectedRole = 'Müşteri';
   final AuthService _authService = AuthService();
@@ -33,8 +33,8 @@ class _RegisterPageState extends State<RegisterPage> {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
     final confirmPassword = _confirmPasswordController.text.trim();
-    final salonName       = _salonNameController.text.trim();
-    final salonAddress    = _salonAddressController.text.trim();
+    final salonName = _salonNameController.text.trim();
+    final salonAddress = _salonAddressController.text.trim();
 
     if (fullName.isEmpty ||
         email.isEmpty ||
@@ -83,11 +83,11 @@ class _RegisterPageState extends State<RegisterPage> {
     };
 
     final success = await _authService.register(
-      fullName:     fullName,
-      email:        email,
-      password:     password,
-      role:         roleMap[_selectedRole]!,
-      salonName:    _isSalonOwner ? salonName    : null,
+      fullName: fullName,
+      email: email,
+      password: password,
+      role: roleMap[_selectedRole]!,
+      salonName: _isSalonOwner ? salonName : null,
       salonAddress: _isSalonOwner ? salonAddress : null,
     );
 
@@ -103,8 +103,9 @@ class _RegisterPageState extends State<RegisterPage> {
         MaterialPageRoute(builder: (_) => const LoginPage()),
       );
     } else {
-      setState(() =>
-          _message = "Kayıt başarısız. Bu e-posta zaten kayıtlı olabilir.");
+      setState(() {
+        _message = "Kayıt başarısız. Bu e-posta zaten kayıtlı olabilir.";
+      });
     }
   }
 
@@ -250,7 +251,6 @@ class _RegisterPageState extends State<RegisterPage> {
                     ),
                     const SizedBox(height: 14),
 
-                    // Salon Sahibi seçilince belirir
                     if (_isSalonOwner) ...[
                       Container(
                         padding: const EdgeInsets.all(14),
@@ -264,8 +264,11 @@ class _RegisterPageState extends State<RegisterPage> {
                           children: [
                             const Row(
                               children: [
-                                Icon(Icons.store_outlined,
-                                    size: 16, color: AppColors.accent),
+                                Icon(
+                                  Icons.store_outlined,
+                                  size: 16,
+                                  color: AppColors.accent,
+                                ),
                                 SizedBox(width: 6),
                                 Text(
                                   'Salon Bilgileri',
@@ -301,16 +304,15 @@ class _RegisterPageState extends State<RegisterPage> {
 
                     _isLoading
                         ? const Center(
-                            child: CircularProgressIndicator(
-                              color: AppColors.accent,
-                              strokeWidth: 2,
-                            ),
-                          )
+                      child: CircularProgressIndicator(
+                        color: AppColors.accent,
+                        strokeWidth: 2,
+                      ),
+                    )
                         : PrimaryButton(
-                            label: 'Hesap oluştur',
-                            onTap: _register,
-                            color: AppColors.accent,
-                          ),
+                      label: 'Hesap oluştur',
+                      onTap: _register,
+                    ),
                     const SizedBox(height: 20),
 
                     Center(
@@ -375,8 +377,7 @@ class _RoleChips extends StatelessWidget {
           onTap: onChanged != null ? () => onChanged!(role) : null,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 180),
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
             decoration: BoxDecoration(
               color: isActive ? AppColors.mainDark : AppColors.surface,
               borderRadius: BorderRadius.circular(10),
