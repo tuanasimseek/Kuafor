@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'auth_service.dart';
 
 class AppointmentService {
-  static const String _base = 'http://127.0.0.1:5069/api/Appointment';
+  static const String _base = 'http://192.168.1.105:5069/api/Appointment';
   final AuthService _authService = AuthService();
 
   Future<Map<String, String>> _headers() async {
@@ -14,7 +14,6 @@ class AppointmentService {
     };
   }
 
-  // Müşterinin randevuları
   Future<List<dynamic>> getCustomerAppointments(int customerId) async {
     try {
       final res = await http.get(
@@ -26,7 +25,6 @@ class AppointmentService {
     return [];
   }
 
-  // Kuaförün randevuları
   Future<List<dynamic>> getStylistAppointments(int stylistId) async {
     try {
       final res = await http.get(
@@ -38,7 +36,6 @@ class AppointmentService {
     return [];
   }
 
-  // Salon sahibinin tüm randevuları
   Future<List<dynamic>> getSalonAppointments(int salonId) async {
     try {
       final res = await http.get(
@@ -50,8 +47,6 @@ class AppointmentService {
     return [];
   }
 
-  // Kuaförün seçilen günde dolu slotları
-  // date: yyyy-MM-dd formatında
   Future<List<dynamic>> getBusySlots(int stylistId, String date) async {
     try {
       final res = await http.get(
@@ -63,8 +58,6 @@ class AppointmentService {
     return [];
   }
 
-  // Randevu oluştur
-  // Döner: ({Map? data, String? error})
   Future<({Map? data, String? error})> createAppointment({
     required int customerId,
     required int stylistId,
@@ -80,18 +73,15 @@ class AppointmentService {
         'stylistId': stylistId,
         'salonId': salonId,
         'serviceId': serviceId,
-        // ISO 8601 — backend DateTime.Parse ile okur
         'appointmentDate': appointmentDate.toUtc().toIso8601String(),
         'durationMinutes': durationMinutes,
         if (notes != null && notes.isNotEmpty) 'notes': notes,
       });
-
       final res = await http.post(
         Uri.parse(_base),
         headers: await _headers(),
         body: body,
       );
-
       if (res.statusCode == 200) {
         return (data: jsonDecode(res.body) as Map, error: null);
       } else {
@@ -104,7 +94,6 @@ class AppointmentService {
     }
   }
 
-  // Kuaför / salon sahibi durum günceller
   Future<bool> updateStatus(int appointmentId, String status) async {
     try {
       final res = await http.put(
@@ -118,7 +107,6 @@ class AppointmentService {
     }
   }
 
-  // Müşteri iptal eder
   Future<({bool success, String? error})> cancelAppointment(
       int appointmentId, int customerId) async {
     try {

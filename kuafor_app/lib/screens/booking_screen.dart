@@ -1,13 +1,13 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../services/appointment_service.dart';
-import '../services/employee_service.dart';
+import '../services/salon_service.dart';
 import '../widgets/app_widgets.dart';
 
 class BookingScreen extends StatefulWidget {
   final int customerId;
   final int salonId;
   final String salonName;
-  // Hizmet önceden seçili gelir
   final int serviceId;
   final String serviceName;
   final double servicePrice;
@@ -30,132 +30,140 @@ class BookingScreen extends StatefulWidget {
 
 class _BookingScreenState extends State<BookingScreen> {
   final AppointmentService _appointmentService = AppointmentService();
-  final EmployeeService _employeeService = EmployeeService();
+  final SalonService _salonService = SalonService();
 
-  // Adım 1: Kuaför seç
-  List<dynamic> _employees = [];
-  Map<String, dynamic>? _selectedEmployee;
-  bool _loadingEmployees = true;
+  int _step = 0;
 
-  // Adım 2: Tarih seç
+  List<dynamic> _stylists = [];
+  bool _loadingStylists = true;
+
+  Map<String, dynamic>? _selectedStylist;
   DateTime _selectedDate = DateTime.now().add(const Duration(days: 1));
-
-  // Adım 3: Saat seç
-  List<TimeOfDay> _availableSlots = [];
   TimeOfDay? _selectedTime;
+
+  List<DateTime> _busySlots = [];
   bool _loadingSlots = false;
 
-  // Genel
-  bool _isBooking = false;
-  int _step = 0; // 0=kuaför, 1=tarih, 2=saat, 3=özet
+  bool _booking = false;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
-    _loadEmployees();
+    _loadStylists();
   }
 
-  Future<void> _loadEmployees() async {
-    setState(() => _loadingEmployees = true);
-    final list = await _employeeService.getSalonEmployees(widget.salonId);
-    setState(() {
-      _employees = list;
-      _loadingEmployees = false;
-    });
-  }
+  Future<void> _loadStylists() async {
+    setState(() => _loadingStylists = true);
 
-  Future<void> _loadSlots() async {
-    if (_selectedEmployee == null) return;
-    setState(() {
-      _loadingSlots = true;
-      _selectedTime = null;
-      _availableSlots = [];
-    });
+    // Önce Employee endpoint'ini dene
+    final employees = await _salonService.getEmployeesBySalon(widget.salonId);
+    print('[BookingScreen] employees from /Employee/salon: $employees');
 
-    final stylistId = _selectedEmployee!['userId'] as int;
-    final dateStr =
-        '${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}-${_selectedDate.day.toString().padLeft(2, '0')}';
+    if (employees.isNotEmpty) {
+      if (mounted) {
+        setState(() {
+          _stylists = employees;
+          _loadingStylists = false;
+        });
+      }
+      return;
+    }
 
-    final busyRaw = await _appointmentService.getBusySlots(stylistId, dateStr);
+    // Fallback: services içindeki stylistName'lerden stilist listesi oluştur
+    // Bu durumda stylistId olmayacak — sadece isim gösterilir
+    final salon = await _salonService.getSalonDetail(widget.salonId);
+    final services = (salon?['services'] as List<dynamic>?) ?? [];
+    print('[BookingScreen] services fallback: $services');
 
-    // Dolu aralıkları hesapla
-    final List<_TimeRange> busyRanges = busyRaw.map((b) {
-      final dt = DateTime.parse(b['appointmentDate']).toLocal();
-      final dur = b['durationMinutes'] as int;
-      return _TimeRange(
-        start: TimeOfDay(hour: dt.hour, minute: dt.minute),
-        durationMinutes: dur,
-      );
-    }).toList();
-
-    // 09:00 - 20:00 arası 30 dakikalık slotlar üret
-    final List<TimeOfDay> slots = [];
-    for (int h = 9; h < 20; h++) {
-      for (int m = 0; m < 60; m += 30) {
-        final slot = TimeOfDay(hour: h, minute: m);
-        // Bu slot + hizmet süresi dolu mu?
-        final slotStart = _toMinutes(slot);
-        final slotEnd = slotStart + widget.serviceDurationMinutes;
-        // Gün sonu aşıyor mu?
-        if (slotEnd > _toMinutes(const TimeOfDay(hour: 20, minute: 0))) continue;
-
-        bool conflict = false;
-        for (final busy in busyRanges) {
-          final busyStart = _toMinutes(busy.start);
-          final busyEnd = busyStart + busy.durationMinutes;
-          // Çakışma: slotStart < busyEnd && slotEnd > busyStart
-          if (slotStart < busyEnd && slotEnd > busyStart) {
-            conflict = true;
-            break;
-          }
-        }
-        if (!conflict) slots.add(slot);
+    // stylistName'e göre tekrarsız stilist listesi
+    final Map<String, Map<String, dynamic>> stylistMap = {};
+    for (final s in services) {
+      final stylistName = s['stylistName'] as String?;
+      if (stylistName != null && stylistName.isNotEmpty) {
+        stylistMap[stylistName] = {
+          'id': null,       // stylistId yok — backend'den gelmiyor
+          'userId': null,
+          'user': {
+            'fullName': stylistName,
+            'specialty': '',
+            'rating': 0,
+          },
+          '_fromServices': true, // flag: bu fallback verisi
+        };
       }
     }
 
-    setState(() {
-      _availableSlots = slots;
-      _loadingSlots = false;
-    });
-  }
-
-  int _toMinutes(TimeOfDay t) => t.hour * 60 + t.minute;
-
-  Future<void> _pickDate() async {
-    final now = DateTime.now();
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _selectedDate,
-      firstDate: now,
-      lastDate: now.add(const Duration(days: 60)),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: AppColors.primary,
-              onPrimary: Colors.white,
-              onSurface: AppColors.primary,
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
-    if (picked != null) {
+    if (mounted) {
       setState(() {
-        _selectedDate = picked;
-        _selectedTime = null;
-        _availableSlots = [];
+        _stylists = stylistMap.values.toList();
+        _loadingStylists = false;
       });
-      await _loadSlots();
     }
   }
 
-  Future<void> _book() async {
-    if (_selectedEmployee == null || _selectedTime == null) return;
-    setState(() => _isBooking = true);
+  Future<void> _loadBusySlots() async {
+    if (_selectedStylist == null) return;
+    final stylistId = _selectedStylist!['userId'] ?? _selectedStylist!['id'];
+    // stylistId yoksa busy slot kontrolü atla
+    if (stylistId == null) return;
+    setState(() => _loadingSlots = true);
+    final dateStr =
+        '${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}-${_selectedDate.day.toString().padLeft(2, '0')}';
+    final slots = await _appointmentService.getBusySlots(stylistId as int, dateStr);
+    if (mounted) {
+      setState(() {
+        _busySlots = slots.map<DateTime>((s) => DateTime.parse(s.toString())).toList();
+        _loadingSlots = false;
+      });
+    }
+  }
 
-    final appointmentDate = DateTime(
+  bool _isSlotBusy(TimeOfDay time) {
+    final candidate = DateTime(
+      _selectedDate.year,
+      _selectedDate.month,
+      _selectedDate.day,
+      time.hour,
+      time.minute,
+    );
+    for (final busy in _busySlots) {
+      final diff = candidate.difference(busy).abs().inMinutes;
+      if (diff < widget.serviceDurationMinutes) return true;
+    }
+    return false;
+  }
+
+  List<TimeOfDay> _generateTimeSlots() {
+    final slots = <TimeOfDay>[];
+    for (int h = 9; h < 20; h++) {
+      slots.add(TimeOfDay(hour: h, minute: 0));
+      slots.add(TimeOfDay(hour: h, minute: 30));
+    }
+    return slots;
+  }
+
+  bool _isDateSelectable(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    return !date.isBefore(today);
+  }
+
+  Future<void> _book() async {
+    if (_selectedStylist == null || _selectedTime == null) return;
+
+    final stylistId = _selectedStylist!['userId'] ?? _selectedStylist!['id'];
+
+    // stylistId yoksa (fallback modunda) hata göster
+    if (stylistId == null) {
+      setState(() => _error =
+          'Stilist ID bilgisi alınamadı. Lütfen salon yöneticisiyle iletişime geçin.');
+      return;
+    }
+
+    setState(() { _booking = true; _error = null; });
+
+    final dt = DateTime(
       _selectedDate.year,
       _selectedDate.month,
       _selectedDate.day,
@@ -165,87 +173,79 @@ class _BookingScreenState extends State<BookingScreen> {
 
     final result = await _appointmentService.createAppointment(
       customerId: widget.customerId,
-      stylistId: _selectedEmployee!['userId'] as int,
+      stylistId: stylistId as int,
       salonId: widget.salonId,
       serviceId: widget.serviceId,
-      appointmentDate: appointmentDate,
+      appointmentDate: dt,
       durationMinutes: widget.serviceDurationMinutes,
     );
 
-    setState(() => _isBooking = false);
-
     if (!mounted) return;
+    setState(() => _booking = false);
 
-    if (result.error != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result.error!),
-          backgroundColor: Colors.red.shade700,
-        ),
-      );
-      return;
+    if (result.error == null) {
+      _showSuccessSheet();
+    } else {
+      setState(() => _error = result.error);
     }
+  }
 
-    // Başarılı
-    showDialog(
+  void _showSuccessSheet() {
+    showModalBottomSheet(
       context: context,
-      barrierDismissible: false,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        content: Column(
+      backgroundColor: Colors.transparent,
+      isDismissible: false,
+      builder: (_) => Container(
+        decoration: const BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 40),
+        child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 64,
-              height: 64,
+              width: 42, height: 4,
               decoration: BoxDecoration(
-                color: const Color(0xFF10B981).withOpacity(0.12),
+                color: AppColors.border,
+                borderRadius: BorderRadius.circular(99),
+              ),
+            ),
+            const SizedBox(height: 28),
+            Container(
+              width: 72, height: 72,
+              decoration: BoxDecoration(
+                color: Colors.green.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.check_rounded,
-                  color: Color(0xFF10B981), size: 36),
+              child: const Icon(Icons.check_rounded, color: Colors.green, size: 38),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 18),
             const Text(
               'Randevu Alındı!',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: AppColors.primary,
-              ),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: AppColors.primary),
             ),
             const SizedBox(height: 8),
             Text(
-              '${_selectedDate.day}.${_selectedDate.month}.${_selectedDate.year} '
-              '${_selectedTime!.hour.toString().padLeft(2, '0')}:${_selectedTime!.minute.toString().padLeft(2, '0')} '
-              'tarihinde ${_selectedEmployee!['fullName']} ile randevunuz oluşturuldu.',
+              '${widget.salonName} • ${widget.serviceName}\n'
+              '${_selectedDate.day}.${_selectedDate.month}.${_selectedDate.year}  '
+              '${_selectedTime!.hour.toString().padLeft(2, '0')}:${_selectedTime!.minute.toString().padLeft(2, '0')}',
               textAlign: TextAlign.center,
-              style: const TextStyle(color: AppColors.muted, fontSize: 13),
+              style: const TextStyle(fontSize: 13, color: AppColors.muted, height: 1.6),
+            ),
+            const SizedBox(height: 28),
+            PrimaryButton(
+              label: 'Tamam',
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pop(context);
+              },
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context); // dialog kapat
-              Navigator.pop(context); // booking ekranını kapat
-            },
-            child: const Text(
-              'Tamam',
-              style: TextStyle(
-                  color: AppColors.primary, fontWeight: FontWeight.w600),
-            ),
-          ),
-        ],
       ),
     );
   }
-
-  String _formatDate(DateTime d) =>
-      '${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.${d.year}';
-
-  String _formatTime(TimeOfDay t) =>
-      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
 
   @override
   Widget build(BuildContext context) {
@@ -253,568 +253,474 @@ class _BookingScreenState extends State<BookingScreen> {
       backgroundColor: AppColors.background,
       body: Column(
         children: [
-          // Header
-          Container(
-            color: AppColors.primary,
-            padding: EdgeInsets.only(
-              top: MediaQuery.of(context).padding.top + 16,
-              left: 24,
-              right: 24,
-              bottom: 24,
-            ),
-            child: Row(
-              children: [
-                GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: const Icon(Icons.arrow_back_ios,
-                      color: Colors.white, size: 18),
-                ),
-                const SizedBox(width: 16),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'RANDEVU AL',
-                        style: TextStyle(
-                          color: AppColors.accent,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 2.5,
-                        ),
-                      ),
-                      SizedBox(height: 2),
-                      Text(
-                        'Adım adım randevu oluştur',
-                        style: TextStyle(
-                          color: AppColors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Adım göstergesi
-          Container(
-            color: AppColors.surface,
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
-            child: Row(
-              children: [
-                _StepDot(index: 0, current: _step, label: 'Kuaför'),
-                _StepLine(active: _step >= 1),
-                _StepDot(index: 1, current: _step, label: 'Tarih'),
-                _StepLine(active: _step >= 2),
-                _StepDot(index: 2, current: _step, label: 'Saat'),
-                _StepLine(active: _step >= 3),
-                _StepDot(index: 3, current: _step, label: 'Özet'),
-              ],
-            ),
-          ),
-
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Hizmet özeti
-                  _ServiceSummaryCard(
-                    name: widget.serviceName,
-                    price: widget.servicePrice,
-                    duration: widget.serviceDurationMinutes,
-                    salonName: widget.salonName,
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Adım 0: Kuaför Seç
-                  _SectionHeader(
-                    title: '1. Kuaför Seçin',
-                    done: _selectedEmployee != null,
-                  ),
-                  const SizedBox(height: 10),
-                  _loadingEmployees
-                      ? const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(24),
-                            child: CircularProgressIndicator(
-                                color: AppColors.accent),
-                          ),
-                        )
-                      : _employees.isEmpty
-                          ? _EmptyCard(text: 'Bu salonda kuaför bulunamadı.')
-                          : Column(
-                              children: _employees.map((emp) {
-                                final isSelected =
-                                    _selectedEmployee?['id'] == emp['id'];
-                                return GestureDetector(
-                                  onTap: () {
-                                    setState(() {
-                                      _selectedEmployee = emp;
-                                      _step = 1;
-                                      _selectedTime = null;
-                                      _availableSlots = [];
-                                    });
-                                    _loadSlots();
-                                  },
-                                  child: Container(
-                                    margin: const EdgeInsets.only(bottom: 8),
-                                    decoration: BoxDecoration(
-                                      color: isSelected
-                                          ? AppColors.primary
-                                          : AppColors.surface,
-                                      borderRadius: BorderRadius.circular(14),
-                                      border: Border.all(
-                                        color: isSelected
-                                            ? AppColors.primary
-                                            : AppColors.border,
-                                        width: isSelected ? 2 : 1,
-                                      ),
-                                    ),
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 16, vertical: 14),
-                                    child: Row(
-                                      children: [
-                                        Container(
-                                          width: 42,
-                                          height: 42,
-                                          decoration: BoxDecoration(
-                                            color: isSelected
-                                                ? Colors.white
-                                                    .withOpacity(0.15)
-                                                : AppColors.accent
-                                                    .withOpacity(0.1),
-                                            borderRadius:
-                                                BorderRadius.circular(12),
-                                          ),
-                                          child: Center(
-                                            child: Text(
-                                              (emp['fullName'] as String)
-                                                      .isNotEmpty
-                                                  ? (emp['fullName'] as String)[
-                                                          0]
-                                                      .toUpperCase()
-                                                  : '?',
-                                              style: TextStyle(
-                                                color: isSelected
-                                                    ? AppColors.white
-                                                    : AppColors.accent,
-                                                fontWeight: FontWeight.w700,
-                                                fontSize: 16,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: Text(
-                                            emp['fullName'] ?? '',
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w500,
-                                              color: isSelected
-                                                  ? AppColors.white
-                                                  : AppColors.primary,
-                                            ),
-                                          ),
-                                        ),
-                                        if (isSelected)
-                                          const Icon(Icons.check_circle_rounded,
-                                              color: AppColors.accent, size: 20),
-                                      ],
-                                    ),
-                                  ),
-                                );
-                              }).toList(),
-                            ),
-
-                  if (_step >= 1) ...[
-                    const SizedBox(height: 20),
-                    // Adım 1: Tarih Seç
-                    _SectionHeader(
-                      title: '2. Tarih Seçin',
-                      done: _step >= 2,
-                    ),
-                    const SizedBox(height: 10),
-                    GestureDetector(
-                      onTap: _pickDate,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: AppColors.surface,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: AppColors.border),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 16),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 42,
-                              height: 42,
-                              decoration: BoxDecoration(
-                                color: AppColors.accent.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Icon(Icons.calendar_today_rounded,
-                                  color: AppColors.accent, size: 20),
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Text(
-                                _formatDate(_selectedDate),
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w500,
-                                  color: AppColors.primary,
-                                ),
-                              ),
-                            ),
-                            const Icon(Icons.edit_calendar_rounded,
-                                color: AppColors.muted, size: 18),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-
-                  if (_step >= 1) ...[
-                    const SizedBox(height: 20),
-                    // Adım 2: Saat Seç
-                    _SectionHeader(
-                      title: '3. Saat Seçin',
-                      done: _selectedTime != null,
-                    ),
-                    const SizedBox(height: 10),
-                    _loadingSlots
-                        ? const Center(
-                            child: Padding(
-                              padding: EdgeInsets.all(24),
-                              child: CircularProgressIndicator(
-                                  color: AppColors.accent),
-                            ),
-                          )
-                        : _availableSlots.isEmpty
-                            ? _EmptyCard(
-                                text:
-                                    'Bu gün için müsait saat yok. Farklı bir tarih deneyin.')
-                            : Wrap(
-                                spacing: 8,
-                                runSpacing: 8,
-                                children: _availableSlots.map((slot) {
-                                  final isSelected = _selectedTime == slot;
-                                  return GestureDetector(
-                                    onTap: () {
-                                      setState(() {
-                                        _selectedTime = slot;
-                                        _step = 3;
-                                      });
-                                    },
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 16, vertical: 10),
-                                      decoration: BoxDecoration(
-                                        color: isSelected
-                                            ? AppColors.primary
-                                            : AppColors.surface,
-                                        borderRadius: BorderRadius.circular(10),
-                                        border: Border.all(
-                                          color: isSelected
-                                              ? AppColors.primary
-                                              : AppColors.border,
-                                        ),
-                                      ),
-                                      child: Text(
-                                        _formatTime(slot),
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w500,
-                                          color: isSelected
-                                              ? AppColors.white
-                                              : AppColors.primary,
-                                        ),
-                                      ),
-                                    ),
-                                  );
-                                }).toList(),
-                              ),
-                  ],
-
-                  // Adım 3: Özet + Onayla
-                  if (_step >= 3 && _selectedTime != null) ...[
-                    const SizedBox(height: 20),
-                    _SectionHeader(title: '4. Randevu Özeti', done: false),
-                    const SizedBox(height: 10),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: AppColors.border),
-                      ),
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        children: [
-                          _SummaryRow(
-                              icon: Icons.store_outlined,
-                              label: 'Salon',
-                              value: widget.salonName),
-                          const Divider(height: 20, color: AppColors.border),
-                          _SummaryRow(
-                              icon: Icons.person_outline_rounded,
-                              label: 'Kuaför',
-                              value: _selectedEmployee!['fullName'] ?? ''),
-                          const Divider(height: 20, color: AppColors.border),
-                          _SummaryRow(
-                              icon: Icons.content_cut_rounded,
-                              label: 'Hizmet',
-                              value: widget.serviceName),
-                          const Divider(height: 20, color: AppColors.border),
-                          _SummaryRow(
-                              icon: Icons.calendar_today_rounded,
-                              label: 'Tarih',
-                              value: _formatDate(_selectedDate)),
-                          const Divider(height: 20, color: AppColors.border),
-                          _SummaryRow(
-                              icon: Icons.access_time_rounded,
-                              label: 'Saat',
-                              value: _formatTime(_selectedTime!)),
-                          const Divider(height: 20, color: AppColors.border),
-                          _SummaryRow(
-                              icon: Icons.attach_money_rounded,
-                              label: 'Ücret',
-                              value: '₺${widget.servicePrice.toStringAsFixed(0)}'),
-                          const Divider(height: 20, color: AppColors.border),
-                          _SummaryRow(
-                              icon: Icons.timer_outlined,
-                              label: 'Süre',
-                              value: '${widget.serviceDurationMinutes} dakika'),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    GestureDetector(
-                      onTap: _isBooking ? null : _book,
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary,
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: Center(
-                          child: _isBooking
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : const Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(Icons.check_rounded,
-                                        color: Colors.white, size: 18),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      'Randevuyu Onayla',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 30),
-                  ],
-                ],
-              ),
-            ),
-          ),
+          _buildHeader(),
+          _buildStepper(),
+          Expanded(child: _buildStep()),
+          _buildBottomBar(),
         ],
       ),
     );
   }
-}
 
-// Dolu slot için yardımcı sınıf
-class _TimeRange {
-  final TimeOfDay start;
-  final int durationMinutes;
-  _TimeRange({required this.start, required this.durationMinutes});
-}
-
-// Alt widget'lar
-class _StepDot extends StatelessWidget {
-  final int index;
-  final int current;
-  final String label;
-  const _StepDot(
-      {required this.index, required this.current, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    final done = index < current;
-    final active = index == current;
-    return Column(
-      children: [
-        Container(
-          width: 28,
-          height: 28,
-          decoration: BoxDecoration(
-            color: done
-                ? const Color(0xFF10B981)
-                : active
-                    ? AppColors.primary
-                    : AppColors.border,
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            done ? Icons.check_rounded : Icons.circle,
-            color: Colors.white,
-            size: done ? 16 : 8,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 10,
-            color: active ? AppColors.primary : AppColors.muted,
-            fontWeight: active ? FontWeight.w600 : FontWeight.normal,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _StepLine extends StatelessWidget {
-  final bool active;
-  const _StepLine({required this.active});
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
-        height: 2,
-        margin: const EdgeInsets.only(bottom: 16),
-        color: active ? AppColors.primary : AppColors.border,
-      ),
-    );
-  }
-}
-
-class _ServiceSummaryCard extends StatelessWidget {
-  final String name;
-  final double price;
-  final int duration;
-  final String salonName;
-  const _ServiceSummaryCard({
-    required this.name,
-    required this.price,
-    required this.duration,
-    required this.salonName,
-  });
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildHeader() {
     return Container(
-      decoration: BoxDecoration(
-        color: AppColors.primary,
-        borderRadius: BorderRadius.circular(14),
+      color: AppColors.primary,
+      padding: EdgeInsets.only(
+        top: MediaQuery.of(context).padding.top + 16,
+        left: 20, right: 20, bottom: 20,
       ),
-      padding: const EdgeInsets.all(16),
       child: Row(
         children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: AppColors.accent.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(Icons.content_cut_rounded,
-                color: AppColors.accent, size: 24),
+          GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 18),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  name,
-                  style: const TextStyle(
-                    color: AppColors.white,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '$salonName · $duration dk',
-                  style: const TextStyle(
-                      color: AppColors.white, fontSize: 12, height: 1.3),
-                ),
+                const Text('RANDEVU AL',
+                    style: TextStyle(color: AppColors.accent, fontSize: 11,
+                        fontWeight: FontWeight.w600, letterSpacing: 2)),
+                const SizedBox(height: 2),
+                Text(widget.serviceName,
+                    style: const TextStyle(color: AppColors.white,
+                        fontSize: 18, fontWeight: FontWeight.w500)),
               ],
             ),
           ),
-          Text(
-            '₺${price.toStringAsFixed(0)}',
-            style: const TextStyle(
-              color: AppColors.accent,
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: AppColors.accent.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              '₺${widget.servicePrice.toStringAsFixed(0)}',
+              style: const TextStyle(color: AppColors.accent,
+                  fontSize: 14, fontWeight: FontWeight.w700),
             ),
           ),
         ],
       ),
     );
   }
-}
 
-class _SectionHeader extends StatelessWidget {
-  final String title;
-  final bool done;
-  const _SectionHeader({required this.title, required this.done});
+  Widget _buildStepper() {
+    final steps = ['Stilist', 'Tarih', 'Saat', 'Özet'];
+    return Container(
+      color: AppColors.surface,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      child: Row(
+        children: List.generate(steps.length * 2 - 1, (i) {
+          if (i.isOdd) {
+            final stepIndex = i ~/ 2;
+            return Expanded(
+              child: Container(
+                height: 2,
+                color: stepIndex < _step ? AppColors.accent : AppColors.border,
+              ),
+            );
+          }
+          final stepIndex = i ~/ 2;
+          final done = stepIndex < _step;
+          final active = stepIndex == _step;
+          return Column(
+            children: [
+              Container(
+                width: 28, height: 28,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: done ? AppColors.accent : active ? AppColors.primary : AppColors.border,
+                ),
+                child: Center(
+                  child: done
+                      ? const Icon(Icons.check, size: 14, color: Colors.white)
+                      : Text(
+                          '${stepIndex + 1}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: active ? Colors.white : AppColors.muted,
+                          ),
+                        ),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                steps[stepIndex],
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: active ? FontWeight.w700 : FontWeight.normal,
+                  color: active ? AppColors.primary : AppColors.muted,
+                ),
+              ),
+            ],
+          );
+        }),
+      ),
+    );
+  }
 
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: AppColors.primary,
-          ),
+  Widget _buildStep() {
+    switch (_step) {
+      case 0: return _buildStylistStep();
+      case 1: return _buildDateStep();
+      case 2: return _buildTimeStep();
+      case 3: return _buildSummaryStep();
+      default: return const SizedBox();
+    }
+  }
+
+  Widget _buildStylistStep() {
+    if (_loadingStylists) {
+      return const Center(child: CircularProgressIndicator(color: AppColors.accent));
+    }
+    if (_stylists.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(32),
+          child: Text('Bu salonda stilist bulunamadı.',
+              style: TextStyle(color: AppColors.muted)),
         ),
-        const Spacer(),
-        if (done)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      );
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: _stylists.length,
+      itemBuilder: (_, i) {
+        final s = _stylists[i];
+        final user = s['user'] as Map<String, dynamic>? ?? s;
+        final name = user['fullName'] ?? user['name'] ?? 'Stilist';
+        final specialty = user['specialty'] as String? ?? '';
+        final rating = (user['rating'] as num?)?.toDouble() ?? 0.0;
+        final stylistId = s['userId'] ?? s['id'] ?? user['id'];
+        final selected = _selectedStylist != null &&
+            ((_selectedStylist!['userId'] ?? _selectedStylist!['id']) ==
+                stylistId);
+
+        return GestureDetector(
+          onTap: () => setState(() => _selectedStylist = s),
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFF10B981).withOpacity(0.12),
-              borderRadius: BorderRadius.circular(8),
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: selected ? AppColors.accent : AppColors.border,
+                width: selected ? 2 : 1,
+              ),
             ),
-            child: const Text(
-              'Seçildi ✓',
-              style: TextStyle(
-                  color: Color(0xFF10B981),
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600),
+            child: Row(
+              children: [
+                Container(
+                  width: 48, height: 48,
+                  decoration: BoxDecoration(
+                    color: AppColors.accent.withOpacity(0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Text(
+                      name.isNotEmpty ? name[0].toUpperCase() : '?',
+                      style: const TextStyle(color: AppColors.accent,
+                          fontSize: 18, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(name, style: const TextStyle(fontSize: 14,
+                          fontWeight: FontWeight.w600, color: AppColors.primary)),
+                      if (specialty.isNotEmpty)
+                        Text(specialty,
+                            style: const TextStyle(fontSize: 12, color: AppColors.muted)),
+                      if (rating > 0)
+                        Row(children: [
+                          const Icon(Icons.star_rounded, size: 13,
+                              color: Color(0xFFFBBF24)),
+                          const SizedBox(width: 3),
+                          Text(rating.toStringAsFixed(1),
+                              style: const TextStyle(
+                                  fontSize: 12, color: AppColors.muted)),
+                        ]),
+                      // fallback uyarısı
+                      if (s['_fromServices'] == true && stylistId == null)
+                        const Text('* Randevu için salon sahibiyle iletişime geçin',
+                            style: TextStyle(fontSize: 10, color: Colors.orange)),
+                    ],
+                  ),
+                ),
+                if (selected)
+                  const Icon(Icons.check_circle_rounded,
+                      color: AppColors.accent, size: 22),
+              ],
             ),
           ),
-      ],
+        );
+      },
+    );
+  }
+
+  Widget _buildDateStep() {
+    final now = DateTime.now();
+    final firstDay = DateTime(now.year, now.month, now.day);
+    final lastDay = firstDay.add(const Duration(days: 60));
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Tarih Seçin',
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600,
+                  color: AppColors.primary)),
+          const SizedBox(height: 14),
+          Container(
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: CalendarDatePicker(
+              initialDate: _selectedDate.isAfter(firstDay)
+                  ? _selectedDate
+                  : firstDay.add(const Duration(days: 1)),
+              firstDate: firstDay.add(const Duration(days: 1)),
+              lastDate: lastDay,
+              onDateChanged: (date) => setState(() => _selectedDate = date),
+              selectableDayPredicate: _isDateSelectable,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppColors.accent.withOpacity(0.07),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.accent.withOpacity(0.2)),
+            ),
+            child: Row(children: [
+              const Icon(Icons.calendar_today_rounded, size: 16,
+                  color: AppColors.accent),
+              const SizedBox(width: 10),
+              Text(
+                'Seçilen: ${_selectedDate.day}.${_selectedDate.month}.${_selectedDate.year}',
+                style: const TextStyle(fontSize: 13, color: AppColors.accent,
+                    fontWeight: FontWeight.w600),
+              ),
+            ]),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTimeStep() {
+    final slots = _generateTimeSlots();
+    return _loadingSlots
+        ? const Center(
+            child: CircularProgressIndicator(color: AppColors.accent))
+        : GridView.builder(
+            padding: const EdgeInsets.all(16),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 4,
+              childAspectRatio: 2.0,
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 8,
+            ),
+            itemCount: slots.length,
+            itemBuilder: (_, i) {
+              final slot = slots[i];
+              final busy = _isSlotBusy(slot);
+              final selected = _selectedTime != null &&
+                  _selectedTime!.hour == slot.hour &&
+                  _selectedTime!.minute == slot.minute;
+
+              return GestureDetector(
+                onTap: busy ? null : () => setState(() => _selectedTime = slot),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: busy
+                        ? AppColors.border.withOpacity(0.4)
+                        : selected
+                            ? AppColors.primary
+                            : AppColors.surface,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: selected ? AppColors.primary : AppColors.border,
+                      width: selected ? 2 : 1,
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(
+                      '${slot.hour.toString().padLeft(2, '0')}:${slot.minute.toString().padLeft(2, '0')}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: busy
+                            ? AppColors.muted.withOpacity(0.5)
+                            : selected
+                                ? Colors.white
+                                : AppColors.primary,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          );
+  }
+
+  Widget _buildSummaryStep() {
+    final stylistUser = _selectedStylist?['user'] as Map<String, dynamic>?
+        ?? _selectedStylist ?? {};
+    final stylistName =
+        stylistUser['fullName'] ?? stylistUser['name'] ?? 'Stilist';
+
+    final rows = [
+      _SummaryRow(icon: Icons.store_outlined, label: 'Salon', value: widget.salonName),
+      _SummaryRow(icon: Icons.content_cut_rounded, label: 'Hizmet', value: widget.serviceName),
+      _SummaryRow(icon: Icons.person_outline_rounded, label: 'Stilist', value: stylistName),
+      _SummaryRow(
+        icon: Icons.calendar_today_rounded,
+        label: 'Tarih',
+        value: '${_selectedDate.day}.${_selectedDate.month}.${_selectedDate.year}',
+      ),
+      _SummaryRow(
+        icon: Icons.access_time_rounded,
+        label: 'Saat',
+        value:
+            '${_selectedTime!.hour.toString().padLeft(2, '0')}:${_selectedTime!.minute.toString().padLeft(2, '0')}',
+      ),
+      _SummaryRow(
+        icon: Icons.timer_outlined,
+        label: 'Süre',
+        value: '${widget.serviceDurationMinutes} dk',
+      ),
+      _SummaryRow(
+        icon: Icons.payments_outlined,
+        label: 'Ücret',
+        value: '₺${widget.servicePrice.toStringAsFixed(0)}',
+        highlight: true,
+      ),
+    ];
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Randevu Özeti',
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600,
+                  color: AppColors.primary)),
+          const SizedBox(height: 14),
+          Container(
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Column(
+              children: List.generate(rows.length, (i) {
+                return Column(
+                  children: [
+                    rows[i],
+                    if (i < rows.length - 1)
+                      const Divider(height: 1, color: AppColors.border,
+                          indent: 16, endIndent: 16),
+                  ],
+                );
+              }),
+            ),
+          ),
+          if (_error != null) ...[
+            const SizedBox(height: 14),
+            ErrorBanner(message: _error!),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBottomBar() {
+    final canNext = switch (_step) {
+      0 => _selectedStylist != null,
+      1 => true,
+      2 => _selectedTime != null,
+      3 => true,
+      _ => false,
+    };
+
+    return Container(
+      padding: EdgeInsets.only(
+        left: 20, right: 20,
+        bottom: MediaQuery.of(context).padding.bottom + 16,
+        top: 12,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        border: Border(top: BorderSide(color: AppColors.border)),
+      ),
+      child: Row(
+        children: [
+          if (_step > 0)
+            GestureDetector(
+              onTap: () => setState(() { _step--; _error = null; }),
+              child: Container(
+                width: 48, height: 48,
+                decoration: BoxDecoration(
+                  color: AppColors.background,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: const Icon(Icons.arrow_back_ios_rounded,
+                    size: 16, color: AppColors.primary),
+              ),
+            ),
+          if (_step > 0) const SizedBox(width: 12),
+          Expanded(
+            child: _booking
+                ? const Center(
+                    child: CircularProgressIndicator(color: AppColors.accent))
+                : GestureDetector(
+                    onTap: canNext
+                        ? () async {
+                            if (_step == 3) {
+                              await _book();
+                            } else {
+                              if (_step == 1) {
+                                await _loadBusySlots();
+                              }
+                              setState(() { _step++; _error = null; });
+                            }
+                          }
+                        : null,
+                    child: Container(
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: canNext ? AppColors.primary : AppColors.border,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Center(
+                        child: Text(
+                          _step == 3 ? 'Randevu Al' : 'Devam Et',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: canNext ? Colors.white : AppColors.muted,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -823,48 +729,35 @@ class _SummaryRow extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
-  const _SummaryRow(
-      {required this.icon, required this.label, required this.value});
+  final bool highlight;
+
+  const _SummaryRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.highlight = false,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, size: 16, color: AppColors.muted),
-        const SizedBox(width: 10),
-        Text(label,
-            style: const TextStyle(color: AppColors.muted, fontSize: 13)),
-        const Spacer(),
-        Text(
-          value,
-          style: const TextStyle(
-            color: AppColors.primary,
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: AppColors.accent),
+          const SizedBox(width: 12),
+          Text(label,
+              style: const TextStyle(fontSize: 13, color: AppColors.muted)),
+          const Spacer(),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: highlight ? AppColors.accent : AppColors.primary,
+            ),
           ),
-        ),
-      ],
-    );
-  }
-}
-
-class _EmptyCard extends StatelessWidget {
-  final String text;
-  const _EmptyCard({required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Center(
-        child: Text(text,
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: AppColors.muted, fontSize: 13)),
+        ],
       ),
     );
   }

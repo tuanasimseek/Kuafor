@@ -8,14 +8,11 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Veritabanı bağlantısı
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Servisler
 builder.Services.AddScoped<AuthService>();
 
-// JWT
 var jwtKey = "this_is_a_very_strong_secret_key_1234567890";
 var key = Encoding.UTF8.GetBytes(jwtKey);
 
@@ -40,7 +37,6 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
@@ -51,13 +47,11 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Controllers + Swagger
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "Kuafor API", Version = "v1" });
-
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Description = "Lütfen JWT token'ınızı 'Bearer <token>' formatında girin",
@@ -67,7 +61,6 @@ builder.Services.AddSwaggerGen(c =>
         Scheme = "bearer",
         BearerFormat = "JWT"
     });
-
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
@@ -93,11 +86,19 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseCors("AllowAll");
 
+var wwwrootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+Directory.CreateDirectory(wwwrootPath);
+Directory.CreateDirectory(Path.Combine(wwwrootPath, "uploads", "profiles"));
+Directory.CreateDirectory(Path.Combine(wwwrootPath, "uploads", "posts"));
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(wwwrootPath),
+    RequestPath = ""
+});
+
+app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
-
 app.Run();

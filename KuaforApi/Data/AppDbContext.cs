@@ -18,13 +18,14 @@ namespace KuaforApi.Data
         public DbSet<Campaign> Campaigns { get; set; } = null!;
         public DbSet<Review> Reviews { get; set; } = null!;
         public DbSet<Notification> Notifications { get; set; } = null!;
+        public DbSet<Post> Posts { get; set; } = null!;
+        public DbSet<PostImage> PostImages { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
             AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
-            // Appointment — birden fazla User FK olduğu için explicit konfigürasyon
             modelBuilder.Entity<Appointment>()
                 .HasOne(a => a.Customer)
                 .WithMany()
@@ -48,6 +49,12 @@ namespace KuaforApi.Data
                 .WithMany()
                 .HasForeignKey(a => a.ServiceId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<PostImage>()
+                .HasOne(i => i.Post)
+                .WithMany(p => p.Images)
+                .HasForeignKey(i => i.PostId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

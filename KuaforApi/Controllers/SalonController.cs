@@ -21,10 +21,38 @@ public class SalonController : ControllerBase
     {
         var salons = await _context.Salons
             .Select(s => new {
-                s.Id, s.Name, s.Address, s.Description, s.ImageUrl, s.OwnerId
+                s.Id, s.Name, s.Address, s.Description,
+                s.ImageUrl, s.OwnerId, s.Latitude, s.Longitude
             })
             .ToListAsync();
         return Ok(salons);
+    }
+
+    [HttpGet("nearby")]
+    public async Task<IActionResult> GetNearbySalons(
+        [FromQuery] double lat,
+        [FromQuery] double lng,
+        [FromQuery] double radius = 10.0)
+    {
+        var salons = await _context.Salons
+            .Where(s => s.Latitude != null && s.Longitude != null)
+            .Select(s => new {
+                s.Id, s.Name, s.Address, s.Description,
+                s.ImageUrl, s.OwnerId, s.Latitude, s.Longitude
+            })
+            .ToListAsync();
+
+        var nearby = salons
+            .Select(s => new {
+                s.Id, s.Name, s.Address, s.Description,
+                s.ImageUrl, s.OwnerId, s.Latitude, s.Longitude,
+                DistanceKm = HaversineDistance(lat, lng, s.Latitude!.Value, s.Longitude!.Value)
+            })
+            .Where(s => s.DistanceKm <= radius)
+            .OrderBy(s => s.DistanceKm)
+            .ToList();
+
+        return Ok(nearby);
     }
 
     [HttpGet("{id}")]
@@ -33,70 +61,44 @@ public class SalonController : ControllerBase
         var salon = await _context.Salons
             .Where(s => s.Id == id)
             .Select(s => new {
-                s.Id, s.Name, s.Address, s.Description, s.ImageUrl, s.OwnerId
+                s.Id, s.Name, s.Address, s.Description,
+                s.ImageUrl, s.OwnerId, s.Latitude, s.Longitude
             })
             .FirstOrDefaultAsync();
 
         if (salon == null)
             return NotFound(new { message = "Salon bulunamadı." });
 
-        // 1) Salona doğrudan bağlı hizmetler (SalonId'li, salon sahibinin eklediği)
         var salonServices = await _context.Services
             .Where(sv => sv.SalonId == id && sv.StylistId == null)
-            .Select(sv => new ServiceDto
-            {
-                Id = sv.Id,
-                Name = sv.Name,
-                Price = sv.Price,
-                DurationMinutes = sv.DurationMinutes,
-                StylistName = null
+            .Select(sv => new ServiceDto {
+                Id = sv.Id, Name = sv.Name, Price = sv.Price,
+                DurationMinutes = sv.DurationMinutes, StylistName = null
             })
             .ToListAsync();
 
-        // 2) Stilistin hem SalonId hem StylistId'si olan hizmetler
-        //    (createStylistService artık salonId de gönderiyor)
         var stylistSalonServices = await _context.Services
             .Where(sv => sv.SalonId == id && sv.StylistId != null)
-            .Join(
-                _context.Users,
-                sv => sv.StylistId,
-                u => u.Id,
-                (sv, u) => new ServiceDto
-                {
-                    Id = sv.Id,
-                    Name = sv.Name,
-                    Price = sv.Price,
-                    DurationMinutes = sv.DurationMinutes,
-                    StylistName = u.FullName
-                }
-            )
+            .Join(_context.Users, sv => sv.StylistId, u => u.Id,
+                (sv, u) => new ServiceDto {
+                    Id = sv.Id, Name = sv.Name, Price = sv.Price,
+                    DurationMinutes = sv.DurationMinutes, StylistName = u.FullName
+                })
             .ToListAsync();
 
-        // 3) Eski yöntem — sadece StylistId var, SalonId yok (Employee join ile)
-        //    Geriye dönük uyumluluk için bırakıyoruz
         var employeeUserIds = await _context.Employees
             .Where(e => e.SalonId == id)
             .Select(e => e.UserId)
             .ToListAsync();
 
         var legacyStylistServices = await _context.Services
-            .Where(sv =>
-                sv.StylistId != null &&
-                sv.SalonId == null && // SalonId yoksa (eski kayıtlar)
-                employeeUserIds.Contains(sv.StylistId!.Value))
-            .Join(
-                _context.Users,
-                sv => sv.StylistId,
-                u => u.Id,
-                (sv, u) => new ServiceDto
-                {
-                    Id = sv.Id,
-                    Name = sv.Name,
-                    Price = sv.Price,
-                    DurationMinutes = sv.DurationMinutes,
-                    StylistName = u.FullName
-                }
-            )
+            .Where(sv => sv.StylistId != null && sv.SalonId == null &&
+                         employeeUserIds.Contains(sv.StylistId!.Value))
+            .Join(_context.Users, sv => sv.StylistId, u => u.Id,
+                (sv, u) => new ServiceDto {
+                    Id = sv.Id, Name = sv.Name, Price = sv.Price,
+                    DurationMinutes = sv.DurationMinutes, StylistName = u.FullName
+                })
             .ToListAsync();
 
         var allServices = salonServices
@@ -105,12 +107,8 @@ public class SalonController : ControllerBase
             .ToList();
 
         return Ok(new {
-            salon.Id,
-            salon.Name,
-            salon.Address,
-            salon.Description,
-            salon.ImageUrl,
-            salon.OwnerId,
+            salon.Id, salon.Name, salon.Address, salon.Description,
+            salon.ImageUrl, salon.OwnerId, salon.Latitude, salon.Longitude,
             services = allServices
         });
     }
@@ -121,7 +119,8 @@ public class SalonController : ControllerBase
         var salon = await _context.Salons
             .Where(s => s.OwnerId == ownerId)
             .Select(s => new {
-                s.Id, s.Name, s.Address, s.Description, s.ImageUrl, s.OwnerId
+                s.Id, s.Name, s.Address, s.Description,
+                s.ImageUrl, s.OwnerId, s.Latitude, s.Longitude
             })
             .FirstOrDefaultAsync();
 
@@ -131,7 +130,6 @@ public class SalonController : ControllerBase
         return Ok(salon);
     }
 
-    // YENİ — stilistin çalıştığı salonu Employee tablosundan bulur
     [HttpGet("stylist/{stylistId}")]
     public async Task<IActionResult> GetSalonByStylist(int stylistId)
     {
@@ -145,7 +143,8 @@ public class SalonController : ControllerBase
         var salon = await _context.Salons
             .Where(s => s.Id == employee.SalonId)
             .Select(s => new {
-                s.Id, s.Name, s.Address, s.Description, s.ImageUrl, s.OwnerId
+                s.Id, s.Name, s.Address, s.Description,
+                s.ImageUrl, s.OwnerId, s.Latitude, s.Longitude
             })
             .FirstOrDefaultAsync();
 
@@ -166,8 +165,31 @@ public class SalonController : ControllerBase
         await _context.SaveChangesAsync();
 
         return Ok(new {
-            salon.Id, salon.Name, salon.Address,
-            salon.Description, salon.ImageUrl, salon.OwnerId
+            salon.Id, salon.Name, salon.Address, salon.Description,
+            salon.ImageUrl, salon.OwnerId, salon.Latitude, salon.Longitude
+        });
+    }
+
+    // YENİ — salon bilgilerini güncelle (adres + koordinat dahil)
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateSalon(int id, [FromBody] UpdateSalonRequest req)
+    {
+        var salon = await _context.Salons.FindAsync(id);
+        if (salon == null)
+            return NotFound(new { message = "Salon bulunamadı." });
+
+        if (req.Name        != null) salon.Name        = req.Name;
+        if (req.Address     != null) salon.Address     = req.Address;
+        if (req.Description != null) salon.Description = req.Description;
+        if (req.ImageUrl    != null) salon.ImageUrl    = req.ImageUrl;
+        if (req.Latitude    != null) salon.Latitude    = req.Latitude;
+        if (req.Longitude   != null) salon.Longitude   = req.Longitude;
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new {
+            salon.Id, salon.Name, salon.Address, salon.Description,
+            salon.ImageUrl, salon.OwnerId, salon.Latitude, salon.Longitude
         });
     }
 
@@ -182,6 +204,30 @@ public class SalonController : ControllerBase
         await _context.SaveChangesAsync();
         return Ok(new { message = "Salon silindi." });
     }
+
+    private static double HaversineDistance(double lat1, double lon1, double lat2, double lon2)
+    {
+        const double R = 6371.0;
+        var dLat = ToRad(lat2 - lat1);
+        var dLon = ToRad(lon2 - lon1);
+        var a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2) +
+                Math.Cos(ToRad(lat1)) * Math.Cos(ToRad(lat2)) *
+                Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
+        var c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
+        return R * c;
+    }
+
+    private static double ToRad(double deg) => deg * Math.PI / 180.0;
+}
+
+public class UpdateSalonRequest
+{
+    public string? Name        { get; set; }
+    public string? Address     { get; set; }
+    public string? Description { get; set; }
+    public string? ImageUrl    { get; set; }
+    public double? Latitude    { get; set; }
+    public double? Longitude   { get; set; }
 }
 
 public class ServiceDto
