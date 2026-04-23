@@ -1,4 +1,4 @@
-# Berber Randevu Uygulaması
+# Kuaför Randevu Uygulaması
 
 Full-stack bir ekip projesi — rol tabanlı erişime sahip kuaför randevu ve yönetim sistemi.
 
