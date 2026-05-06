@@ -13,14 +13,5 @@ Full-stack bir ekip projesi — rol tabanlı erişime sahip kuaför randevu ve y
 **Frontend:** Flutter, Dart, Dio  
 **Veritabanı:** SQL Server  
 
-## Katkılarım (Tuana)
-- JWT tabanlı kimlik doğrulama sisteminin tasarımı ve geliştirilmesi  
-- User entity ve AuthController geliştirme  
-- Rol yönetimi: Admin, Müşteri, Kuaför  
-- .NET Identity ile parola hashleme  
-- Veritabanı şeması ve migration’lar (Users tablosu, Token tablosu)  
-- Flutter Login, Register, Profile ekranları  
-- Dio ile backend API entegrasyonu  
-
 ## Ekip
 3 kişilik ekip projesi.
