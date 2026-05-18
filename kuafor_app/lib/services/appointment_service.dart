@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'auth_service.dart';
 
 class AppointmentService {
-  static const String _base = 'http://192.168.1.105:5069/api/Appointment';
+  static const String _base = 'https://kuafor-019f.onrender.com/api/Appointment';
   final AuthService _authService = AuthService();
 
   Future<Map<String, String>> _headers() async {
@@ -56,6 +56,21 @@ class AppointmentService {
       if (res.statusCode == 200) return jsonDecode(res.body);
     } catch (_) {}
     return [];
+  }
+
+  List<DateTime> parseBusySlotDates(List<dynamic> slots) {
+    return slots.map<DateTime?>((slot) {
+      try {
+        if (slot is Map) {
+          final raw = slot['appointmentDate'] ?? slot['AppointmentDate'];
+          if (raw == null) return null;
+          return DateTime.parse(raw.toString()).toLocal();
+        }
+        return DateTime.parse(slot.toString()).toLocal();
+      } catch (_) {
+        return null;
+      }
+    }).whereType<DateTime>().toList();
   }
 
   Future<({Map? data, String? error})> createAppointment({

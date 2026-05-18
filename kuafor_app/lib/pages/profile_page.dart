@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import '../services/appointment_service.dart';
 import '../services/auth_service.dart';
+import '../services/campaign_service.dart';
+import '../services/review_service.dart';
 import '../widgets/app_widgets.dart';
 import 'login_page.dart';
 
@@ -13,11 +17,18 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   final AuthService _authService = AuthService();
+  final AppointmentService _appointmentService = AppointmentService();
+  final ReviewService _reviewService = ReviewService();
+  final CampaignService _campaignService = CampaignService();
   final ImagePicker _picker = ImagePicker();
 
   String name = "";
   String email = "";
   String role = "";
+  int _userId = 0;
+  int _appointmentCount = 0;
+  int _reviewCount = 0;
+  int _campaignCount = 0;
   String _profileImageUrl = "";
 
   bool _isLoading = true;
@@ -55,17 +66,66 @@ class _ProfilePageState extends State<ProfilePage> {
     if (user != null) {
       setState(() {
         name             = user['name']            ?? '';
+        _userId          = user['id']              ?? 0;
         email            = user['email']           ?? '';
         role             = user['role']            ?? '';
         _profileImageUrl = user['profileImageUrl'] ?? '';
         _isLoading       = false;
       });
+      _loadStats();
     } else {
       setState(() {
         _isLoading    = false;
         _errorMessage = "Kullanıcı bilgileri alınamadı.";
       });
     }
+  }
+
+  Future<void> _loadStats() async {
+    if (_userId == 0) return;
+    final appointments = await _appointmentService.getCustomerAppointments(_userId);
+    final reviews = await _reviewService.getReviews();
+    final campaigns = await _campaignService.getCampaigns();
+    if (!mounted) return;
+    setState(() {
+      _appointmentCount = appointments.length;
+      _reviewCount = reviews.where((r) => r['userId'] == _userId).length;
+      _campaignCount = campaigns.length;
+    });
+  }
+
+  void _copyEmail() {
+    if (email.isEmpty) return;
+    Clipboard.setData(ClipboardData(text: email));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('E-posta kopyalandı')),
+    );
+  }
+
+  void _showSupport() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Yardım & Destek'),
+        content: const Text('Destek için kuafor.destek@example.com adresine yazabilirsiniz. Randevu, hesap ve salon işlemleri için ekip size dönüş yapar.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Tamam')),
+        ],
+      ),
+    );
+  }
+
+  void _showRateDialog() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Uygulamayı Değerlendir'),
+        content: const Text('Değerlendirmeniz için teşekkürler. Mağaza yayını açıldığında bu ekran App Store / Play Store sayfasına yönlendirilebilir.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Tamam')),
+        ],
+      ),
+    );
   }
 
   Future<void> _pickAndUploadPhoto() async {
@@ -353,7 +413,6 @@ class _ProfilePageState extends State<ProfilePage> {
       'Customer':    'Müşteri',
       'Hairdresser': 'Kuaför',
       'SalonOwner':  'Salon Sahibi',
-      'Admin':       'Yönetici',
     };
     return map[role] ?? role;
   }
@@ -513,12 +572,12 @@ class _ProfilePageState extends State<ProfilePage> {
                       child: Padding(
                         padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
                         child: Row(
-                          children: const [
-                            _StatCard(label: 'Randevu', value: '—'),
-                            SizedBox(width: 8),
-                            _StatCard(label: 'Yorum', value: '—'),
-                            SizedBox(width: 8),
-                            _StatCard(label: 'Kampanya', value: '—'),
+                          children: [
+                            _StatCard(label: 'Randevu', value: '$_appointmentCount'),
+                            const SizedBox(width: 8),
+                            _StatCard(label: 'Yorum', value: '$_reviewCount'),
+                            const SizedBox(width: 8),
+                            _StatCard(label: 'Kampanya', value: '$_campaignCount'),
                           ],
                         ),
                       ),
@@ -531,7 +590,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         child: Column(
                           children: [
                             _InfoRow(icon: Icons.person_outline_rounded, label: 'Ad Soyad', value: name.isNotEmpty ? name : '-', onTap: _editName),
-                            _InfoRow(icon: Icons.mail_outline_rounded,   label: 'E-posta',  value: email.isNotEmpty ? email : '-', onTap: null),
+                            _InfoRow(icon: Icons.mail_outline_rounded,   label: 'E-posta',  value: email.isNotEmpty ? email : '-', onTap: _copyEmail),
                             _InfoRow(icon: Icons.lock_outline_rounded,   label: 'Şifre',    value: '••••••••', onTap: _editPassword, isLast: true),
                           ],
                         ),
@@ -566,8 +625,8 @@ class _ProfilePageState extends State<ProfilePage> {
                         title: 'Diğer',
                         child: Column(
                           children: [
-                            _InfoRow(icon: Icons.help_outline_rounded,  label: 'Yardım & Destek',         onTap: null),
-                            _InfoRow(icon: Icons.star_outline_rounded,  label: 'Uygulamayı Değerlendir',  onTap: null),
+                            _InfoRow(icon: Icons.help_outline_rounded,  label: 'Yardım & Destek',         onTap: _showSupport),
+                            _InfoRow(icon: Icons.star_outline_rounded,  label: 'Uygulamayı Değerlendir',  onTap: _showRateDialog),
                             _InfoRow(icon: Icons.info_outline_rounded,  label: 'Versiyon', value: '1.0.0', showArrow: false, isLast: true),
                           ],
                         ),

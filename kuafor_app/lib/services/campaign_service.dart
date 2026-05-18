@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'auth_service.dart';
 
 class CampaignService {
-  static const String _base = 'http://192.168.1.105:5069/api';
+  static const String _base = 'https://kuafor-019f.onrender.com/api';
   final AuthService _authService = AuthService();
 
   Future<Map<String, String>> _headers() async {
@@ -44,6 +44,7 @@ class CampaignService {
     required int salonId,
     required String title,
     required String description,
+    String? code,
     required int discountPercent,
     required DateTime startDate,
     DateTime? endDate,
@@ -53,6 +54,7 @@ class CampaignService {
         'salonId': salonId,
         'title': title,
         'description': description,
+        if (code != null && code.isNotEmpty) 'code': code.toUpperCase(),
         'discountPercent': discountPercent,
         'startDate': startDate.toIso8601String(),
         'endDate': endDate?.toIso8601String(),
@@ -69,6 +71,22 @@ class CampaignService {
       return (success: false, error: 'Sunucu hatası: ${res.statusCode}');
     } catch (e) {
       return (success: false, error: e.toString());
+    }
+  }
+
+  Future<({Map<String, dynamic>? campaign, String? error})> validateCode(String code) async {
+    try {
+      final uri = Uri.parse('$_base/Campaign/validate-code').replace(
+        queryParameters: {'code': code},
+      );
+      final res = await http.get(uri, headers: await _headers());
+      if (res.statusCode == 200) {
+        return (campaign: jsonDecode(res.body) as Map<String, dynamic>, error: null);
+      }
+      final decoded = jsonDecode(res.body);
+      return (campaign: null, error: decoded['message']?.toString() ?? 'Kod geçersiz');
+    } catch (_) {
+      return (campaign: null, error: 'Bağlantı hatası');
     }
   }
 

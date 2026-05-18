@@ -168,7 +168,7 @@ class _SalonOwnerAppointmentsScreenState
                     ? all
                     : all
                         .where((a) =>
-                            (a['status'] ?? a['Status'] ?? '') == _filter)
+                            _statusCode(a) == _filter)
                         .toList();
 
                 if (filtered.isEmpty) {
@@ -204,8 +204,7 @@ class _SalonOwnerAppointmentsScreenState
                     itemCount: filtered.length,
                     itemBuilder: (context, i) {
                       final a = filtered[i];
-                      final status =
-                          (a['status'] ?? a['Status'] ?? 'Pending') as String;
+                      final status = _statusCode(a);
                       return _OwnerAppointmentCard(
                         appt: a,
                         statusLabel: _statusLabel(status),
@@ -229,6 +228,23 @@ class _SalonOwnerAppointmentsScreenState
         ],
       ),
     );
+  }
+
+  String _statusCode(dynamic appt) {
+    final status = (appt['statusCode'] ?? appt['status'] ?? appt['Status'] ?? 'Pending').toString();
+    switch (status) {
+      case 'Onaylandı':
+      case 'Confirmed':
+        return 'Confirmed';
+      case 'İptal Edildi':
+      case 'Cancelled':
+        return 'Cancelled';
+      case 'Tamamlandı':
+      case 'Completed':
+        return 'Completed';
+      default:
+        return 'Pending';
+    }
   }
 }
 

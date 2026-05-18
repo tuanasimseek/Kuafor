@@ -74,8 +74,8 @@ class _SalonOwnerHomePageState extends State<SalonOwnerHomePage> {
     try {
       final appointments = await _appointmentService.getSalonAppointments(salonId);
       final pending = appointments.where((a) {
-        final status = (a['status'] ?? a['Status'] ?? '').toString().toLowerCase();
-        return status == 'pending';
+        final status = (a['statusCode'] ?? a['status'] ?? a['Status'] ?? '').toString();
+        return status == 'Pending' || status == 'Beklemede';
       }).length;
       if (mounted) setState(() => _pendingCount = pending);
     } catch (_) {}
@@ -241,13 +241,6 @@ class _SalonOwnerHomePageState extends State<SalonOwnerHomePage> {
                           title: 'Bildirimler',
                           subtitle: 'Salon bildirimlerini görüntüle',
                           onTap: () => _navigate(NotificationsScreen(userId: _userId)),
-                        ),
-                        const SizedBox(height: 10),
-                        _MenuCard(
-                          icon: Icons.bar_chart_rounded,
-                          title: 'Raporlar',
-                          subtitle: 'Gelir ve performans istatistikleri',
-                          onTap: () => _navigate(SalonOwnerAppointmentsScreen(salonId: _salonId)),
                         ),
                       ],
                     ),

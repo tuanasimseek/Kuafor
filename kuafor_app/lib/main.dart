@@ -3,7 +3,6 @@ import 'package:flutter/foundation.dart';
 import 'pages/customer_home_page.dart';
 import 'pages/stylist_home_page.dart';
 import 'pages/salon_owner_home_page.dart';
-import 'pages/admin_dashboard.dart';
 import 'services/auth_service.dart';
 import 'services/firebase_service.dart';
 import 'services/notification_service.dart';
@@ -85,10 +84,8 @@ class _SplashDeciderState extends State<SplashDecider> {
         return const StylistHomePage();
       case 'SalonOwner':
         return const SalonOwnerHomePage();
-      case 'Admin':
-        return const AdminDashboard();
       default:
-        return null;
+        return const CustomerHomePage(guestMode: false);
     }
   }
 

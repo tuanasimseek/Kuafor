@@ -79,6 +79,9 @@ namespace KuaforApi.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("Code")
+                        .HasColumnType("text");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -326,6 +329,37 @@ namespace KuaforApi.Migrations
                     b.ToTable("Services");
                 });
 
+            modelBuilder.Entity("KuaforApi.Models.StylistAvailability", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<TimeSpan>("CloseTime")
+                        .HasColumnType("interval");
+
+                    b.Property<int>("DayOfWeek")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsOpen")
+                        .HasColumnType("boolean");
+
+                    b.Property<TimeSpan>("OpenTime")
+                        .HasColumnType("interval");
+
+                    b.Property<int>("StylistId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StylistId", "DayOfWeek")
+                        .IsUnique();
+
+                    b.ToTable("StylistAvailabilities");
+                });
+
             modelBuilder.Entity("KuaforApi.Models.User", b =>
                 {
                     b.Property<int>("Id")
@@ -333,6 +367,12 @@ namespace KuaforApi.Migrations
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AuthProvider")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Email")
                         .IsRequired()
@@ -349,6 +389,9 @@ namespace KuaforApi.Migrations
                     b.Property<string>("ProfileImageUrl")
                         .HasColumnType("text");
 
+                    b.Property<string>("ProviderId")
+                        .HasColumnType("text");
+
                     b.Property<double>("Rating")
                         .HasColumnType("double precision");
 
@@ -359,7 +402,13 @@ namespace KuaforApi.Migrations
                     b.Property<string>("Specialty")
                         .HasColumnType("text");
 
+                    b.Property<string>("Username")
+                        .HasColumnType("text");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("Username")
+                        .IsUnique();
 
                     b.ToTable("Users");
                 });
@@ -501,6 +550,17 @@ namespace KuaforApi.Migrations
                         .HasForeignKey("StylistId");
 
                     b.Navigation("Salon");
+
+                    b.Navigation("Stylist");
+                });
+
+            modelBuilder.Entity("KuaforApi.Models.StylistAvailability", b =>
+                {
+                    b.HasOne("KuaforApi.Models.User", "Stylist")
+                        .WithMany()
+                        .HasForeignKey("StylistId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Stylist");
                 });

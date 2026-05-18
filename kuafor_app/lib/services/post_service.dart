@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-const String baseUrl = 'http://192.168.1.105:5069/api';
+const String baseUrl = 'https://kuafor-019f.onrender.com/api';
 
 class PostService {
   final Dio _dio = Dio();

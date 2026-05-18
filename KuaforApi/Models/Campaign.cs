@@ -8,6 +8,8 @@ namespace KuaforApi.Models
 
         public string Description { get; set; } = string.Empty;
 
+        public string? Code { get; set; }
+
         public int DiscountPercent { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

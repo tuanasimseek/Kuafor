@@ -20,6 +20,7 @@ namespace KuaforApi.Data
         public DbSet<Notification> Notifications { get; set; } = null!;
         public DbSet<Post> Posts { get; set; } = null!;
         public DbSet<PostImage> PostImages { get; set; } = null!;
+        public DbSet<StylistAvailability> StylistAvailabilities { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -54,6 +55,24 @@ namespace KuaforApi.Data
                 .HasOne(i => i.Post)
                 .WithMany(p => p.Images)
                 .HasForeignKey(i => i.PostId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<User>()
+                .HasIndex(u => u.Email)
+                .IsUnique();
+
+            modelBuilder.Entity<User>()
+                .HasIndex(u => u.Username)
+                .IsUnique();
+
+            modelBuilder.Entity<StylistAvailability>()
+                .HasIndex(a => new { a.StylistId, a.DayOfWeek })
+                .IsUnique();
+
+            modelBuilder.Entity<StylistAvailability>()
+                .HasOne(a => a.Stylist)
+                .WithMany()
+                .HasForeignKey(a => a.StylistId)
                 .OnDelete(DeleteBehavior.Cascade);
         }
     }

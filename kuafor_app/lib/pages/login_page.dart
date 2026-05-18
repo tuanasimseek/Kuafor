@@ -4,9 +4,9 @@ import '../widgets/app_widgets.dart';
 import 'customer_home_page.dart';
 import 'stylist_home_page.dart';
 import 'salon_owner_home_page.dart';
-import 'admin_dashboard.dart';
 import 'register_page.dart';
 import 'forgot_password_page.dart';
+import 'business_register_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -26,17 +26,17 @@ class _LoginPageState extends State<LoginPage> {
 
   // ── Orijinal login logic — dokunulmadı ────────────────────
   Future<void> _login() async {
-    final email    = _emailController.text.trim();
+    final identifier = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
-    if (email.isEmpty || password.isEmpty) {
-      setState(() => _errorMessage = "Lütfen e-posta ve şifre alanlarını doldurun.");
+    if (identifier.isEmpty || password.isEmpty) {
+      setState(() => _errorMessage = "Lütfen e-posta/kullanıcı adı ve şifre alanlarını doldurun.");
       return;
     }
 
     setState(() { _isLoading = true; _errorMessage = null; });
 
-    final token = await _authService.login(email, password);
+    final token = await _authService.login(identifier, password);
     if (!mounted) return;
 
     if (token != null && token.isNotEmpty) {
@@ -55,10 +55,8 @@ class _LoginPageState extends State<LoginPage> {
           Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const StylistHomePage()));
         } else if (role == 'SalonOwner') {
           Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const SalonOwnerHomePage()));
-        } else if (role == 'Admin') {
-          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AdminDashboard()));
         } else {
-          setState(() => _errorMessage = "Rol bilgisi tanınmadı.");
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const CustomerHomePage()));
         }
       } else {
         setState(() => _errorMessage = "Kullanıcı bilgisi alınamadı.");
@@ -66,6 +64,30 @@ class _LoginPageState extends State<LoginPage> {
     } else {
       setState(() { _isLoading = false; _errorMessage = "E-posta veya şifre hatalı."; });
     }
+  }
+
+  Future<void> _socialLogin(Future<String?> Function() action) async {
+    setState(() { _isLoading = true; _errorMessage = null; });
+    final token = await action();
+    if (!mounted) return;
+    if (token == null || token.isEmpty) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = "Sosyal giriş tamamlanamadı. Firebase/Apple ayarlarını kontrol edin.";
+      });
+      return;
+    }
+    final user = await _authService.getUserInfo(token);
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+    if (user == null) {
+      setState(() => _errorMessage = "Kullanıcı bilgisi alınamadı.");
+      return;
+    }
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const CustomerHomePage()),
+    );
   }
   // ──────────────────────────────────────────────────────────
 
@@ -113,13 +135,14 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     const SizedBox(height: 20),
 
-                    // E-posta
-                    const FieldLabel(text: 'E-posta'),
+                    // E-posta / Kullanıcı adı
+                    const FieldLabel(text: 'E-posta veya kullanıcı adı'),
                     const SizedBox(height: 6),
                     AppTextField(
                       controller: _emailController,
-                      hint: 'ornek@email.com',
+                      hint: 'ornek@email.com veya kullaniciadi',
                       keyboardType: TextInputType.emailAddress,
+                      textInputAction: TextInputAction.next,
                       prefix: const Icon(Icons.mail_outline_rounded,
                           size: 18, color: AppColors.muted),
                     ),
@@ -132,6 +155,8 @@ class _LoginPageState extends State<LoginPage> {
                       controller: _passwordController,
                       hint: '••••••••',
                       obscureText: _obscurePass,
+                      textInputAction: TextInputAction.done,
+                      onSubmitted: (_) => _login(),
                       prefix: const Icon(Icons.lock_outline_rounded,
                           size: 18, color: AppColors.muted),
                       suffix: GestureDetector(
@@ -185,7 +210,10 @@ class _LoginPageState extends State<LoginPage> {
                     const SizedBox(height: 14),
 
                     // Sosyal butonlar
-                    const SocialButtons(),
+                    SocialButtons(
+                      onGoogleTap: () => _socialLogin(_authService.signInWithGoogle),
+                      onAppleTap: () => _socialLogin(_authService.signInWithApple),
+                    ),
                     const SizedBox(height: 22),
 
                     // Alt link
@@ -203,6 +231,24 @@ class _LoginPageState extends State<LoginPage> {
                                 style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700),
                               ),
                             ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Center(
+                      child: GestureDetector(
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const BusinessRegisterPage()),
+                        ),
+                        child: const Text(
+                          'Salon sahibi veya kuaför müsünüz? İşletme başvurusu yapın',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: AppColors.accent,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
                       ),

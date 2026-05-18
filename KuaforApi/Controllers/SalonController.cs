@@ -22,7 +22,11 @@ public class SalonController : ControllerBase
         var salons = await _context.Salons
             .Select(s => new {
                 s.Id, s.Name, s.Address, s.Description,
-                s.ImageUrl, s.OwnerId, s.Latitude, s.Longitude
+                s.ImageUrl, s.OwnerId, s.Latitude, s.Longitude,
+                averageRating = _context.Reviews
+                    .Where(r => r.SalonId == s.Id)
+                    .Select(r => (double?)r.Rating)
+                    .Average() ?? 0
             })
             .ToListAsync();
         return Ok(salons);
@@ -38,7 +42,11 @@ public class SalonController : ControllerBase
             .Where(s => s.Latitude != null && s.Longitude != null)
             .Select(s => new {
                 s.Id, s.Name, s.Address, s.Description,
-                s.ImageUrl, s.OwnerId, s.Latitude, s.Longitude
+                s.ImageUrl, s.OwnerId, s.Latitude, s.Longitude,
+                averageRating = _context.Reviews
+                    .Where(r => r.SalonId == s.Id)
+                    .Select(r => (double?)r.Rating)
+                    .Average() ?? 0
             })
             .ToListAsync();
 

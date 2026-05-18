@@ -3,7 +3,7 @@ import 'package:dio/dio.dart';
 class ReviewService {
   final Dio _dio = Dio(
     BaseOptions(
-      baseUrl: 'http://192.168.1.105:5069/api',
+      baseUrl: 'https://kuafor-019f.onrender.com/api',
       connectTimeout: const Duration(seconds: 5),
       receiveTimeout: const Duration(seconds: 5),
     ),
@@ -23,12 +23,28 @@ class ReviewService {
   Future<List<dynamic>> getSalonReviews(int salonId) async {
     try {
       final response = await _dio.get('/Review/salon/$salonId');
-      if (response.statusCode == 200) return response.data as List<dynamic>;
+      if (response.statusCode == 200) {
+        final data = response.data;
+        if (data is List) return data;
+        if (data is Map && data['reviews'] is List) {
+          return data['reviews'] as List<dynamic>;
+        }
+      }
       return [];
     } on DioException catch (e) {
       print('getSalonReviews hatası: ${e.response?.data ?? e.message}');
       return [];
     }
+  }
+
+  Future<Map<String, dynamic>> getSalonReviewSummary(int salonId) async {
+    try {
+      final response = await _dio.get('/Review/salon/$salonId');
+      if (response.statusCode == 200 && response.data is Map) {
+        return response.data as Map<String, dynamic>;
+      }
+    } catch (_) {}
+    return {'averageRating': 0, 'count': 0, 'reviews': []};
   }
 
   Future<bool> addReview({

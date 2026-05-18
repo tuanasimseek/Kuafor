@@ -192,14 +192,33 @@ class _AppointmentCard extends StatelessWidget {
 
   Color _statusColor(String status) {
     switch (status) {
+      case 'Confirmed':
       case 'Onaylandı':
         return const Color(0xFF10B981);
+      case 'Cancelled':
       case 'İptal Edildi':
         return Colors.red;
+      case 'Completed':
       case 'Tamamlandı':
         return AppColors.accent;
       default:
         return Colors.orange;
+    }
+  }
+
+  String _statusLabel(String status) {
+    switch (status) {
+      case 'Confirmed':
+      case 'Onaylandı':
+        return 'Onaylandı';
+      case 'Cancelled':
+      case 'İptal Edildi':
+        return 'İptal Edildi';
+      case 'Completed':
+      case 'Tamamlandı':
+        return 'Tamamlandı';
+      default:
+        return 'Beklemede';
     }
   }
 
@@ -211,8 +230,11 @@ class _AppointmentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final status = appt['status'] as String? ?? 'Beklemede';
-    final canCancel = status == 'Beklemede' || status == 'Onaylandı';
+    final status = (appt['statusCode'] ?? appt['status'] ?? appt['Status'] ?? 'Beklemede').toString();
+    final canCancel = status == 'Pending' ||
+        status == 'Beklemede' ||
+        status == 'Confirmed' ||
+        status == 'Onaylandı';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -269,7 +291,7 @@ class _AppointmentCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        status,
+                        _statusLabel(status),
                         style: TextStyle(
                           color: _statusColor(status),
                           fontSize: 11,

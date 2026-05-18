@@ -156,7 +156,7 @@ class _StylistAppointmentsScreenState
                 final filtered = _filter == 'Tümü'
                     ? all
                     : all
-                        .where((a) => a['status'] == _filter)
+                        .where((a) => _statusLabel(a) == _filter)
                         .toList();
 
                 if (filtered.isEmpty) {
@@ -193,6 +193,22 @@ class _StylistAppointmentsScreenState
       ),
     );
   }
+
+  String _statusLabel(dynamic appt) {
+    final status = (appt['status'] ?? appt['Status'] ?? appt['statusCode'] ?? 'Beklemede').toString();
+    switch (status) {
+      case 'Confirmed':
+        return 'Onaylandı';
+      case 'Cancelled':
+        return 'İptal Edildi';
+      case 'Completed':
+        return 'Tamamlandı';
+      case 'Pending':
+        return 'Beklemede';
+      default:
+        return status;
+    }
+  }
 }
 
 class _StylistAppointmentCard extends StatelessWidget {
@@ -210,14 +226,33 @@ class _StylistAppointmentCard extends StatelessWidget {
 
   Color _statusColor(String status) {
     switch (status) {
+      case 'Confirmed':
       case 'Onaylandı':
         return const Color(0xFF10B981);
+      case 'Cancelled':
       case 'İptal Edildi':
         return Colors.red;
+      case 'Completed':
       case 'Tamamlandı':
         return AppColors.accent;
       default:
         return Colors.orange;
+    }
+  }
+
+  String _statusLabel(String status) {
+    switch (status) {
+      case 'Confirmed':
+      case 'Onaylandı':
+        return 'Onaylandı';
+      case 'Cancelled':
+      case 'İptal Edildi':
+        return 'İptal Edildi';
+      case 'Completed':
+      case 'Tamamlandı':
+        return 'Tamamlandı';
+      default:
+        return 'Beklemede';
     }
   }
 
@@ -229,7 +264,8 @@ class _StylistAppointmentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final status = appt['status'] as String? ?? 'Beklemede';
+    final status = (appt['status'] ?? appt['Status'] ?? appt['statusCode'] ?? 'Beklemede').toString();
+    final statusLabel = _statusLabel(status);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -298,7 +334,7 @@ class _StylistAppointmentCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        status,
+                        statusLabel,
                         style: TextStyle(
                           color: _statusColor(status),
                           fontSize: 11,
@@ -336,7 +372,7 @@ class _StylistAppointmentCard extends StatelessWidget {
           ),
 
           // Aksiyon butonları
-          if (status == 'Beklemede') ...[
+          if (statusLabel == 'Beklemede') ...[
             const Divider(height: 1, color: AppColors.border),
             Row(
               children: [
@@ -387,7 +423,7 @@ class _StylistAppointmentCard extends StatelessWidget {
                 ),
               ],
             ),
-          ] else if (status == 'Onaylandı') ...[
+          ] else if (statusLabel == 'Onaylandı') ...[
             const Divider(height: 1, color: AppColors.border),
             GestureDetector(
               onTap: onComplete,

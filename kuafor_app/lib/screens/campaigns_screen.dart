@@ -15,10 +15,17 @@ class CampaignsScreen extends StatefulWidget {
 
 class _CampaignsScreenState extends State<CampaignsScreen> {
   final CampaignService _campaignService = CampaignService();
+  final TextEditingController _codeController = TextEditingController();
   List<dynamic> _campaigns = [];
   bool _loading = true;
 
   bool get _isOwner => widget.salonId != null && widget.salonId! > 0;
+
+  @override
+  void dispose() {
+    _codeController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -97,6 +104,21 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
         );
       }
     }
+  }
+
+  Future<void> _validateCode() async {
+    final code = _codeController.text.trim();
+    if (code.isEmpty) return;
+    final result = await _campaignService.validateCode(code);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(result.campaign != null
+            ? '${result.campaign!['title']} kodu geçerli: %${result.campaign!['discountPercent']} indirim'
+            : (result.error ?? 'Kod geçersiz')),
+        backgroundColor: result.campaign != null ? AppColors.primary : Colors.red.shade700,
+      ),
+    );
   }
 
   @override
@@ -215,9 +237,16 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
                       )
                     : ListView.builder(
                         padding: const EdgeInsets.all(16),
-                        itemCount: _campaigns.length,
+                        itemCount: _campaigns.length + (_isOwner ? 0 : 1),
                         itemBuilder: (context, index) {
-                          final c = _campaigns[index];
+                          if (!_isOwner && index == 0) {
+                            return _CampaignCodeCard(
+                              controller: _codeController,
+                              onApply: _validateCode,
+                            );
+                          }
+                          final campaignIndex = _isOwner ? index : index - 1;
+                          final c = _campaigns[campaignIndex];
                           return _CampaignCard(
                             campaign: c,
                             isOwner: _isOwner,
@@ -225,6 +254,53 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
                           );
                         },
                       ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CampaignCodeCard extends StatelessWidget {
+  final TextEditingController controller;
+  final VoidCallback onApply;
+
+  const _CampaignCodeCard({required this.controller, required this.onApply});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: AppTextField(
+              controller: controller,
+              hint: 'Kampanya kodu gir',
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) => onApply(),
+            ),
+          ),
+          const SizedBox(width: 10),
+          GestureDetector(
+            onTap: onApply,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Text(
+                'Uygula',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+              ),
+            ),
           ),
         ],
       ),
@@ -319,6 +395,24 @@ class _CampaignCard extends StatelessWidget {
                     ],
                   ),
                 ],
+                if ((campaign['code'] ?? '').toString().isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.06),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      'Kod: ${campaign['code']}',
+                      style: const TextStyle(
+                        color: AppColors.primary,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -358,6 +452,7 @@ class _AddCampaignSheetState extends State<_AddCampaignSheet> {
   final CampaignService _campaignService = CampaignService();
   final _titleController = TextEditingController();
   final _descController = TextEditingController();
+  final _codeController = TextEditingController();
   final _discountController = TextEditingController();
 
   DateTime _startDate = DateTime.now();
@@ -369,6 +464,7 @@ class _AddCampaignSheetState extends State<_AddCampaignSheet> {
   void dispose() {
     _titleController.dispose();
     _descController.dispose();
+    _codeController.dispose();
     _discountController.dispose();
     super.dispose();
   }
@@ -387,6 +483,22 @@ class _AddCampaignSheetState extends State<_AddCampaignSheet> {
       ),
     );
     if (picked != null) setState(() => _endDate = picked);
+  }
+
+  Future<void> _pickStartDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _startDate,
+      firstDate: DateTime.now().subtract(const Duration(days: 1)),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+      builder: (ctx, child) => Theme(
+        data: ThemeData.light().copyWith(
+          colorScheme: const ColorScheme.light(primary: AppColors.accent),
+        ),
+        child: child!,
+      ),
+    );
+    if (picked != null) setState(() => _startDate = picked);
   }
 
   Future<void> _save() async {
@@ -413,6 +525,7 @@ class _AddCampaignSheetState extends State<_AddCampaignSheet> {
       salonId: widget.salonId,
       title: title,
       description: desc,
+      code: _codeController.text.trim(),
       discountPercent: discount,
       startDate: _startDate,
       endDate: _endDate,
@@ -482,6 +595,14 @@ class _AddCampaignSheetState extends State<_AddCampaignSheet> {
             ),
             const SizedBox(height: 14),
 
+            const FieldLabel(text: 'Kampanya Kodu'),
+            const SizedBox(height: 6),
+            AppTextField(
+              controller: _codeController,
+              hint: 'ör. BAKIM20',
+            ),
+            const SizedBox(height: 14),
+
             const FieldLabel(text: 'İndirim Oranı (%)'),
             const SizedBox(height: 6),
             AppTextField(
@@ -490,6 +611,36 @@ class _AddCampaignSheetState extends State<_AddCampaignSheet> {
               keyboardType: TextInputType.number,
             ),
             const SizedBox(height: 14),
+
+            const FieldLabel(text: 'Başlangıç Tarihi'),
+            const SizedBox(height: 6),
+            GestureDetector(
+              onTap: _pickStartDate,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 14, vertical: 13),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceSoft,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.calendar_today_outlined,
+                        size: 16, color: AppColors.muted),
+                    const SizedBox(width: 10),
+                    Text(
+                      '${_startDate.day}.${_startDate.month}.${_startDate.year}',
+                      style: const TextStyle(
+                        color: AppColors.primary,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
 
             const FieldLabel(text: 'Bitiş Tarihi (Opsiyonel)'),
             const SizedBox(height: 6),

@@ -55,7 +55,12 @@ public class ReviewController : ControllerBase
                 user = new { r.User!.FullName }
             })
             .ToListAsync();
-        return Ok(reviews);
+        return Ok(new
+        {
+            averageRating = reviews.Count == 0 ? 0 : Math.Round(reviews.Average(r => r.Rating), 1),
+            count = reviews.Count,
+            reviews
+        });
     }
 
     // POST: api/review
@@ -75,6 +80,14 @@ public class ReviewController : ControllerBase
         var userExists = await _context.Users.AnyAsync(u => u.Id == request.UserId);
         if (!userExists)
             return BadRequest(new { message = "Kullanıcı bulunamadı." });
+
+        var hasCompletedAppointment = await _context.Appointments.AnyAsync(a =>
+            a.CustomerId == request.UserId &&
+            a.SalonId == request.SalonId &&
+            (a.Status == "Tamamlandı" || a.Status == "Completed"));
+
+        if (!hasCompletedAppointment)
+            return BadRequest(new { message = "Yorum yapabilmek için bu salondan tamamlanmış hizmet almanız gerekir." });
 
         var review = new Review
         {

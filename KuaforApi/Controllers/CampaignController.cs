@@ -52,8 +52,42 @@ public class CampaignController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> CreateCampaign([FromBody] Campaign campaign)
     {
+        if (string.IsNullOrWhiteSpace(campaign.Title))
+            return BadRequest(new { message = "Kampanya başlığı zorunludur." });
+
+        if (campaign.DiscountPercent < 0 || campaign.DiscountPercent > 100)
+            return BadRequest(new { message = "İndirim oranı 0-100 arasında olmalıdır." });
+
+        if (campaign.EndDate != null && campaign.EndDate < campaign.StartDate)
+            return BadRequest(new { message = "Bitiş tarihi başlangıçtan önce olamaz." });
+
+        if (!string.IsNullOrWhiteSpace(campaign.Code))
+            campaign.Code = campaign.Code.Trim().ToUpperInvariant();
+
+        campaign.CreatedAt = DateTime.UtcNow;
+        campaign.IsActive = true;
         _context.Campaigns.Add(campaign);
         await _context.SaveChangesAsync();
+        return Ok(campaign);
+    }
+
+    [HttpGet("validate-code")]
+    public async Task<IActionResult> ValidateCode([FromQuery] string code)
+    {
+        if (string.IsNullOrWhiteSpace(code))
+            return BadRequest(new { message = "Kampanya kodu zorunludur." });
+
+        var now = DateTime.UtcNow;
+        var normalized = code.Trim().ToUpperInvariant();
+        var campaign = await _context.Campaigns
+            .Where(c => c.IsActive && c.Code == normalized)
+            .Where(c => c.StartDate <= now && (c.EndDate == null || c.EndDate >= now))
+            .OrderByDescending(c => c.DiscountPercent)
+            .FirstOrDefaultAsync();
+
+        if (campaign == null)
+            return NotFound(new { message = "Geçerli kampanya bulunamadı." });
+
         return Ok(campaign);
     }
 

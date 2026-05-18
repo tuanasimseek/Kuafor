@@ -256,6 +256,8 @@ class AppTextField extends StatelessWidget {
   final Widget? suffix;
   final Widget? prefix;
   final ValueChanged<String>? onChanged; // ← YENİ
+  final ValueChanged<String>? onSubmitted;
+  final TextInputAction? textInputAction;
 
   const AppTextField({
     super.key,
@@ -266,6 +268,8 @@ class AppTextField extends StatelessWidget {
     this.suffix,
     this.prefix,
     this.onChanged, // ← YENİ
+    this.onSubmitted,
+    this.textInputAction,
   });
 
   @override
@@ -275,6 +279,8 @@ class AppTextField extends StatelessWidget {
       obscureText: obscureText,
       keyboardType: keyboardType,
       onChanged: onChanged, // ← YENİ
+      onSubmitted: onSubmitted,
+      textInputAction: textInputAction,
       style: const TextStyle(fontSize: 14, color: AppColors.primary),
       decoration: InputDecoration(
         hintText: hint,
@@ -377,7 +383,10 @@ class OrDivider extends StatelessWidget {
 //  SOSYAL BUTONLAR SATIRI
 // ══════════════════════════════════════════════════════════════
 class SocialButtons extends StatelessWidget {
-  const SocialButtons({super.key});
+  final VoidCallback? onGoogleTap;
+  final VoidCallback? onAppleTap;
+
+  const SocialButtons({super.key, this.onGoogleTap, this.onAppleTap});
 
   @override
   Widget build(BuildContext context) {
@@ -385,12 +394,12 @@ class SocialButtons extends StatelessWidget {
       children: [
         Expanded(
           child: _SocialBtn(
-            label: 'Google', icon: Icons.g_mobiledata_rounded, onTap: () {}),
+            label: 'Google', icon: Icons.g_mobiledata_rounded, onTap: onGoogleTap ?? () {}),
         ),
         const SizedBox(width: 10),
         Expanded(
           child: _SocialBtn(
-            label: 'Apple', icon: Icons.apple_rounded, onTap: () {}),
+            label: 'Apple', icon: Icons.apple_rounded, onTap: onAppleTap ?? () {}),
         ),
       ],
     );

@@ -8,12 +8,30 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var connectionString =
+    Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection")
+    ?? builder.Configuration.GetConnectionString("DefaultConnection");
+
+if (string.IsNullOrWhiteSpace(connectionString))
+{
+    throw new InvalidOperationException(
+        "Database connection string is missing. Set ConnectionStrings__DefaultConnection on Render or in local user secrets.");
+}
+
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(connectionString));
 
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<EmailService>();
 
-var jwtKey = "this_is_a_very_strong_secret_key_1234567890";
+var jwtKey =
+    Environment.GetEnvironmentVariable("Jwt__Key")
+    ?? builder.Configuration["Jwt:Key"];
+
+if (string.IsNullOrWhiteSpace(jwtKey))
+{
+    jwtKey = "this_is_a_very_strong_secret_key_1234567890";
+}
 var key = Encoding.UTF8.GetBytes(jwtKey);
 
 builder.Services.AddAuthentication(options =>
@@ -49,6 +67,7 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
+
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "Kuafor API", Version = "v1" });
@@ -85,20 +104,30 @@ var app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI();
 
+// ✅ CORS en üstte
+app.UseCors("AllowAll");
+
+// ✅ HttpsRedirection CORS'tan sonra
 app.UseHttpsRedirection();
 
 var wwwrootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
 Directory.CreateDirectory(wwwrootPath);
 Directory.CreateDirectory(Path.Combine(wwwrootPath, "uploads", "profiles"));
 Directory.CreateDirectory(Path.Combine(wwwrootPath, "uploads", "posts"));
+
 app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(wwwrootPath),
     RequestPath = ""
 });
 
-app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
+app.MapGet("/health", () => Results.Ok(new
+{
+    status = "ok",
+    service = "KuaforApi",
+    timestamp = DateTime.UtcNow
+}));
 app.MapControllers();
 app.Run();

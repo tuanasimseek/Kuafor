@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/auth_service.dart';
 import '../widgets/app_widgets.dart';
 
 class ForgotPasswordPage extends StatefulWidget {
@@ -10,6 +11,7 @@ class ForgotPasswordPage extends StatefulWidget {
 
 class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   final _emailController = TextEditingController();
+  final _authService = AuthService();
   String? _message;
   bool _isLoading = false;
 
@@ -32,13 +34,13 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
       _message = null;
     });
 
-    await Future.delayed(const Duration(seconds: 1));
+    final message = await _authService.forgotPassword(email);
 
     if (!mounted) return;
 
     setState(() {
       _isLoading = false;
-      _message = 'Şifre sıfırlama bağlantısı e-posta adresinize gönderildi.';
+      _message = message;
     });
   }
 

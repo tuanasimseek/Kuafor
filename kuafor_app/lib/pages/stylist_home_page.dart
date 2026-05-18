@@ -3,7 +3,6 @@ import '../services/auth_service.dart';
 import '../services/salon_service.dart';
 import '../widgets/app_widgets.dart';
 import '../screens/notifications_screen.dart';
-import '../screens/reviews_readonly_screen.dart';
 import '../screens/availability_screen.dart';
 import '../screens/stylist_appointments_screen.dart';
 import '../screens/stylist_services_screen.dart';
@@ -100,21 +99,6 @@ class _StylistHomePageState extends State<StylistHomePage> {
           stylistId: _userId,
           salonId: _salonId,
         ),
-      ),
-    );
-  }
-
-  void _openReviews() {
-    if (_salonId == 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Salon bilgisi bulunamadı.')),
-      );
-      return;
-    }
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => ReviewsReadOnlyScreen(salonId: _salonId),
       ),
     );
   }
@@ -255,14 +239,6 @@ class _StylistHomePageState extends State<StylistHomePage> {
                         ),
                         const SizedBox(height: 10),
                         _MenuCard(
-                          icon: Icons.star_outline_rounded,
-                          title: 'Müşteri Yorumları',
-                          subtitle: 'Sana yapılan yorumları görüntüle',
-                          onTap: _openReviews,
-                          disabled: _salonId == 0,
-                        ),
-                        const SizedBox(height: 10),
-                        _MenuCard(
                           icon: Icons.notifications_outlined,
                           title: 'Bildirimler',
                           subtitle: 'Randevu ve sistem bildirimlerini gör',
@@ -277,8 +253,8 @@ class _StylistHomePageState extends State<StylistHomePage> {
                         const SizedBox(height: 10),
                         _MenuCard(
                           icon: Icons.access_time_rounded,
-                          title: 'Müsaitlik Saatleri',
-                          subtitle: 'Çalışma takvimini ayarla',
+                          title: 'Çalışma Saatleri',
+                          subtitle: 'Randevu alınabilecek saatleri ayarla',
                           onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(

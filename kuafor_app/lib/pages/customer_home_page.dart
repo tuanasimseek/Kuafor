@@ -7,6 +7,7 @@ import '../widgets/app_widgets.dart';
 import '../screens/salon_detail_screen.dart';
 import '../screens/salons_map_screen.dart';
 import '../screens/campaigns_screen.dart';
+import '../screens/messages_screen.dart';
 import 'login_page.dart';
 import 'register_page.dart';
 import 'profile_page.dart';
@@ -267,19 +268,32 @@ class _CustomerHomePageState extends State<CustomerHomePage> {
   Widget _buildActionButtons() {
     return Padding(
       padding: const EdgeInsets.all(16),
-      child: Row(
+      child: Column(
         children: [
-          _actionBtn(Icons.calendar_today, 'Randevularım', _openAppointments,
-              locked: widget.guestMode),
-          const SizedBox(width: 10),
-          _actionBtn(
-            Icons.local_offer,
-            'Kampanyalar',
-            () => Navigator.push(context,
-                MaterialPageRoute(builder: (_) => const CampaignsScreen())),
+          Row(
+            children: [
+              _actionBtn(Icons.calendar_today, 'Randevularım', _openAppointments,
+                  locked: widget.guestMode),
+              const SizedBox(width: 10),
+              _actionBtn(
+                Icons.local_offer,
+                'Kampanyalar',
+                () => Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => const CampaignsScreen())),
+              ),
+            ],
           ),
-          const SizedBox(width: 10),
-          _actionBtn(Icons.map, 'Haritada Gör', _openMap),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              _actionBtn(Icons.chat_bubble_outline_rounded, 'Mesajlar',
+                  () => Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => const MessagesScreen())),
+                  locked: widget.guestMode),
+              const SizedBox(width: 10),
+              _actionBtn(Icons.map, 'Haritada Gör', _openMap),
+            ],
+          ),
         ],
       ),
     );
@@ -666,18 +680,30 @@ class _AppointmentsPageState extends State<_AppointmentsPage> {
 
   Color _statusColor(String status) {
     switch (status) {
-      case 'Confirmed': return Colors.green;
-      case 'Cancelled': return Colors.red;
-      case 'Completed': return Colors.blue;
+      case 'Confirmed':
+      case 'Onaylandı':
+        return Colors.green;
+      case 'Cancelled':
+      case 'İptal Edildi':
+        return Colors.red;
+      case 'Completed':
+      case 'Tamamlandı':
+        return Colors.blue;
       default:          return Colors.orange;
     }
   }
 
   String _statusLabel(String status) {
     switch (status) {
-      case 'Confirmed': return 'Onaylandı';
-      case 'Cancelled': return 'İptal Edildi';
-      case 'Completed': return 'Tamamlandı';
+      case 'Confirmed':
+      case 'Onaylandı':
+        return 'Onaylandı';
+      case 'Cancelled':
+      case 'İptal Edildi':
+        return 'İptal Edildi';
+      case 'Completed':
+      case 'Tamamlandı':
+        return 'Tamamlandı';
       default:          return 'Bekliyor';
     }
   }
@@ -743,13 +769,16 @@ class _AppointmentsPageState extends State<_AppointmentsPage> {
                     itemCount: _appointments.length,
                     itemBuilder: (context, i) {
                       final a      = _appointments[i];
-                      final status = (a['status'] ?? a['Status'] ?? 'Pending').toString();
+                      final status = (a['statusCode'] ?? a['status'] ?? a['Status'] ?? 'Pending').toString();
                       final salonName   = a['salon']?['name']   ?? a['Salon']?['Name']   ?? 'Salon';
                       final serviceName = a['service']?['name'] ?? a['Service']?['Name'] ?? 'Hizmet';
                       final dateStr     = (a['appointmentDate'] ?? a['AppointmentDate'] ?? '') as String;
                       DateTime? date;
                       try { date = DateTime.parse(dateStr); } catch (_) {}
-                      final canCancel = status == 'Pending' || status == 'Confirmed';
+                      final canCancel = status == 'Pending' ||
+                          status == 'Beklemede' ||
+                          status == 'Confirmed' ||
+                          status == 'Onaylandı';
 
                       return Container(
                         margin: const EdgeInsets.only(bottom: 12),

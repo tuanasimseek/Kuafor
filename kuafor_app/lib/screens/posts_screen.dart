@@ -534,9 +534,9 @@ class _PostCard extends StatelessWidget {
   Color _categoryColor(String cat) {
     switch (cat) {
       case 'BeforeAfter':
-        return Colors.purple;
+        return AppColors.accent;
       case 'Kampanya':
-        return Colors.orange;
+        return AppColors.accentDark;
       default:
         return AppColors.primary;
     }

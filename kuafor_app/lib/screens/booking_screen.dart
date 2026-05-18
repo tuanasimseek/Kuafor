@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../services/appointment_service.dart';
+import '../services/availability_service.dart';
 import '../services/salon_service.dart';
 import '../widgets/app_widgets.dart';
 
@@ -30,6 +31,7 @@ class BookingScreen extends StatefulWidget {
 
 class _BookingScreenState extends State<BookingScreen> {
   final AppointmentService _appointmentService = AppointmentService();
+  final AvailabilityService _availabilityService = AvailabilityService();
   final SalonService _salonService = SalonService();
 
   int _step = 0;
@@ -42,6 +44,7 @@ class _BookingScreenState extends State<BookingScreen> {
   TimeOfDay? _selectedTime;
 
   List<DateTime> _busySlots = [];
+  List<dynamic> _availabilityRows = [];
   bool _loadingSlots = false;
 
   bool _booking = false;
@@ -111,9 +114,11 @@ class _BookingScreenState extends State<BookingScreen> {
     final dateStr =
         '${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}-${_selectedDate.day.toString().padLeft(2, '0')}';
     final slots = await _appointmentService.getBusySlots(stylistId as int, dateStr);
+    final availability = await _availabilityService.getStylistAvailability(stylistId);
     if (mounted) {
       setState(() {
-        _busySlots = slots.map<DateTime>((s) => DateTime.parse(s.toString())).toList();
+        _busySlots = _appointmentService.parseBusySlotDates(slots);
+        _availabilityRows = availability;
         _loadingSlots = false;
       });
     }
@@ -135,10 +140,47 @@ class _BookingScreenState extends State<BookingScreen> {
   }
 
   List<TimeOfDay> _generateTimeSlots() {
+    final businessDay = _selectedDate.weekday;
+    Map<String, dynamic>? row;
+    for (final item in _availabilityRows) {
+      if (item is Map<String, dynamic>) {
+        final day = item['dayOfWeek'] ?? item['DayOfWeek'];
+        if (day == businessDay) {
+          row = item;
+          break;
+        }
+      }
+    }
+
+    if (row != null) {
+      final isOpen = row['isOpen'] ?? row['IsOpen'] ?? true;
+      if (isOpen == false) return [];
+      final open = _parseTime((row['openTime'] ?? row['OpenTime'] ?? '09:00').toString());
+      final close = _parseTime((row['closeTime'] ?? row['CloseTime'] ?? '20:00').toString());
+      return _generateSlotsBetween(open, close);
+    }
+
     final slots = <TimeOfDay>[];
     for (int h = 9; h < 20; h++) {
       slots.add(TimeOfDay(hour: h, minute: 0));
       slots.add(TimeOfDay(hour: h, minute: 30));
+    }
+    return slots;
+  }
+
+  TimeOfDay _parseTime(String raw) {
+    final clean = raw.length >= 5 ? raw.substring(0, 5) : raw;
+    final parts = clean.split(':');
+    return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+  }
+
+  List<TimeOfDay> _generateSlotsBetween(TimeOfDay open, TimeOfDay close) {
+    final slots = <TimeOfDay>[];
+    var minutes = open.hour * 60 + open.minute;
+    final closeMinutes = close.hour * 60 + close.minute;
+    while (minutes + widget.serviceDurationMinutes <= closeMinutes) {
+      slots.add(TimeOfDay(hour: minutes ~/ 60, minute: minutes % 60));
+      minutes += 30;
     }
     return slots;
   }

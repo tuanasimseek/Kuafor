@@ -2,7 +2,7 @@ import 'package:dio/dio.dart';
 import 'auth_service.dart';
 
 class SalonService {
-  static const String _base = 'http://192.168.1.105:5069/api';
+  static const String _base = 'https://kuafor-019f.onrender.com/api';
   final AuthService _authService = AuthService();
 
   Future<Options> _options() async {
